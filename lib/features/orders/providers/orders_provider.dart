@@ -21,15 +21,17 @@ class OrdersNotifier extends AsyncNotifier<List<TransactionWithItems>> {
     final txRepo = ref.read(transactionRepositoryProvider);
     final txs = await txRepo.getTransactions(limit: 50);
     
-    final List<TransactionWithItems> results = [];
-    for (final tx in txs) {
+    // Gunakan Future.wait agar query items berjalan paralel (Fix N+1 sequential bottleneck)
+    final results = await Future.wait(txs.map((tx) async {
       final id = tx.id;
       if (id != null) {
         final items = await txRepo.getTransactionItems(id);
-        results.add(TransactionWithItems(transaction: tx, items: items));
+        return TransactionWithItems(transaction: tx, items: items);
       }
-    }
-    return results;
+      return TransactionWithItems(transaction: tx, items: []);
+    }));
+    
+    return results.where((r) => r.transaction.id != null).toList();
   }
 }
 

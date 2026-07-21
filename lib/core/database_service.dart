@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:async';
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
@@ -18,7 +19,7 @@ class DatabaseService {
   Database? _globalDb;
 
   Future<void> initDb() async {
-    if (_db != null && _globalDb != null) return;
+    if (_db != null) return;
     try {
       var databasesPath = await getDatabasesPath();
       var globalPath = join(databasesPath, DatabaseConfig.globalDbName);
@@ -33,7 +34,10 @@ class DatabaseService {
             data.lengthInBytes,
           );
           await File(globalPath).writeAsBytes(bytes, flush: true);
-        } catch (_) {}
+        } catch (e) {
+          // BUG-005 fix: log error agar bisa dideteksi saat debugging
+          debugPrint('[DatabaseService] Gagal menyalin global_product.db dari asset: $e');
+        }
       }
 
       if (!await databaseExists(globalPath)) {
@@ -197,29 +201,31 @@ class DatabaseService {
       final cleanName = name.trim();
       if (cleanBc.isEmpty || cleanName.isEmpty) return;
 
-      await http.post(
-        Uri.parse(httpUrl),
-        headers: {
-          'Authorization': 'Bearer $tursoToken',
-          'Content-Type': 'application/json',
-        },
-        body: jsonEncode({
-          "requests": [
-            {
-              "type": "execute",
-              "stmt": {
-                "sql":
-                    "INSERT OR IGNORE INTO masterproduct (barcode, name) VALUES (?, ?)",
-                "args": [
-                  {"type": "text", "value": cleanBc},
-                  {"type": "text", "value": cleanName},
-                ],
-              },
+      await http
+          .post(
+            Uri.parse(httpUrl),
+            headers: {
+              'Authorization': 'Bearer $tursoToken',
+              'Content-Type': 'application/json',
             },
-            {"type": "close"},
-          ],
-        }),
-      );
+            body: jsonEncode({
+              "requests": [
+                {
+                  "type": "execute",
+                  "stmt": {
+                    "sql":
+                        "INSERT OR IGNORE INTO masterproduct (barcode, name) VALUES (?, ?)",
+                    "args": [
+                      {"type": "text", "value": cleanBc},
+                      {"type": "text", "value": cleanName},
+                    ],
+                  },
+                },
+                {"type": "close"},
+              ],
+            }),
+          )
+          .timeout(const Duration(seconds: 20));
     } catch (_) {
       // Abaikan error jaringan secara silent agar input lokal pengguna tidak terganggu
     }
@@ -351,7 +357,7 @@ class DatabaseService {
         final cleanBarcode = (item['barcode'] as String).trim();
         final qty = item['qty'] as int;
         batch.rawUpdate(
-          'UPDATE products SET stock = stock - ? WHERE barcode = ?',
+          'UPDATE products SET stock = MAX(0, stock - ?) WHERE barcode = ?',
           [qty, cleanBarcode],
         );
       }
@@ -551,22 +557,24 @@ class DatabaseService {
     final pipelineEndpoint = '$httpUrl/v2/pipeline';
 
     // ── ARAH 1: PULL DARI TURSO -> MERGE KE LOKAL ──
-    final response = await http.post(
-      Uri.parse(pipelineEndpoint),
-      headers: {
-        'Authorization': 'Bearer $tursoToken',
-        'Content-Type': 'application/json',
-      },
-      body: jsonEncode({
-        "requests": [
-          {
-            "type": "execute",
-            "stmt": {"sql": "SELECT barcode, name FROM masterproduct"},
+    final response = await http
+        .post(
+          Uri.parse(pipelineEndpoint),
+          headers: {
+            'Authorization': 'Bearer $tursoToken',
+            'Content-Type': 'application/json',
           },
-          {"type": "close"},
-        ],
-      }),
-    );
+          body: jsonEncode({
+            "requests": [
+              {
+                "type": "execute",
+                "stmt": {"sql": "SELECT barcode, name FROM masterproduct"},
+              },
+              {"type": "close"},
+            ],
+          }),
+        )
+        .timeout(const Duration(seconds: 20));
 
     if (response.statusCode != 200) {
       throw Exception(
@@ -655,14 +663,16 @@ class DatabaseService {
 
           pushRequests.add({"type": "close"});
 
-          await http.post(
-            Uri.parse(pipelineEndpoint),
-            headers: {
-              'Authorization': 'Bearer $tursoToken',
-              'Content-Type': 'application/json',
-            },
-            body: jsonEncode({"requests": pushRequests}),
-          );
+          await http
+              .post(
+                Uri.parse(pipelineEndpoint),
+                headers: {
+                  'Authorization': 'Bearer $tursoToken',
+                  'Content-Type': 'application/json',
+                },
+                body: jsonEncode({"requests": pushRequests}),
+              )
+              .timeout(const Duration(seconds: 20));
         }
       }
     }

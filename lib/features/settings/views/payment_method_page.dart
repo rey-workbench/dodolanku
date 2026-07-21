@@ -127,12 +127,13 @@ class _PaymentMethodPageState extends ConsumerState<PaymentMethodPage> {
   }
 
   Future<void> _scanQrisFromGallery() async {
+    MobileScannerController? controller;
     try {
       final picker = ImagePicker();
       final image = await picker.pickImage(source: ImageSource.gallery);
       if (image == null) return;
 
-      final controller = MobileScannerController();
+      controller = MobileScannerController();
       final barcodeCapture = await controller.analyzeImage(image.path);
 
       final qrisRaw = barcodeCapture?.barcodes.firstOrNull?.rawValue;
@@ -157,6 +158,8 @@ class _PaymentMethodPageState extends ConsumerState<PaymentMethodPage> {
           bottomMargin: 24,
         );
       }
+    } finally {
+      controller?.dispose();
     }
   }
 

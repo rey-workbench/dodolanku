@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:dodolanku/core/services/update_service.dart';
 import 'package:dodolanku/features/dashboard/views/dashboard_page.dart';
 import 'package:dodolanku/features/orders/views/orders_page.dart';
 import 'package:dodolanku/features/debt/views/debt_page.dart';
@@ -14,6 +15,14 @@ class NavigationShell extends StatefulWidget {
 
 class _NavigationShellState extends State<NavigationShell> {
   int _currentIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      UpdateService.checkForUpdates(context);
+    });
+  }
 
   final List<Widget> _pages = const [
     DashboardPage(),

@@ -271,9 +271,14 @@ class DatabaseService {
   }
 
   Future<int> getTotalProductsCount() async {
+    await initDb();
     if (_db == null) return 0;
-    final result = await _db!.rawQuery('SELECT COUNT(*) FROM products');
-    return Sqflite.firstIntValue(result) ?? 0;
+    try {
+      final result = await _db!.rawQuery('SELECT COUNT(*) FROM products');
+      return Sqflite.firstIntValue(result) ?? 0;
+    } catch (_) {
+      return 0;
+    }
   }
 
   // ─────────────────────────────────────────────
@@ -631,9 +636,14 @@ class DatabaseService {
 
   /// Mendapatkan jumlah item di Master Database Global
   Future<int> getGlobalProductsCount() async {
+    await initDb();
     if (_globalDb == null) return 0;
-    final result = await _globalDb!.rawQuery('SELECT COUNT(*) FROM products');
-    return Sqflite.firstIntValue(result) ?? 0;
+    try {
+      final result = await _globalDb!.rawQuery('SELECT COUNT(*) FROM products');
+      return Sqflite.firstIntValue(result) ?? 0;
+    } catch (_) {
+      return 0;
+    }
   }
 
   void dispose() {

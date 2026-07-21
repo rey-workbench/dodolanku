@@ -175,9 +175,9 @@ class SettingsPage extends ConsumerWidget {
             title: 'Database & Sinkronisasi',
             tiles: [
               FutureBuilder<int>(
-                future: ref.read(databaseServiceProvider).getGlobalProductsCount(),
+                future: ref.read(databaseServiceProvider).getTotalProductsCount(),
                 builder: (context, snapshot) {
-                  final count = snapshot.data ?? 51718;
+                  final count = snapshot.data ?? 0;
                   return AppSettingsTile(
                     icon: Icons.storage_outlined,
                     title: 'Info Database Barcode Lokal',

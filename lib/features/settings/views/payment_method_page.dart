@@ -33,19 +33,31 @@ class _PaymentMethodPageState extends ConsumerState<PaymentMethodPage> {
   }
 
   Future<void> _loadQris() async {
-    final db = ref.read(databaseServiceProvider);
-    await db.initDb();
-    final config = await db.getReceiptConfig();
-    final qris = config['qris_data'] ?? '';
-    String merchantName = '';
-    if (qris.isNotEmpty) {
-      merchantName = QrisGenerator.extractMerchantName(qris);
+    try {
+      final db = ref.read(databaseServiceProvider);
+      await db.initDb();
+      final config = await db.getReceiptConfig();
+      final qris = config['qris_data'] ?? '';
+      String merchantName = '';
+      if (qris.isNotEmpty) {
+        try {
+          merchantName = QrisGenerator.extractMerchantName(qris);
+        } catch (_) {}
+      }
+      if (mounted) {
+        setState(() {
+          _qrisController.text = qris;
+          _qrisMerchantName = merchantName;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
-    setState(() {
-      _qrisController.text = qris;
-      _qrisMerchantName = merchantName;
-      _isLoading = false;
-    });
   }
 
   Future<void> _saveQris() async {

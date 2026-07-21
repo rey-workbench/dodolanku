@@ -36,15 +36,14 @@ class AppToast {
             ),
           ],
         ),
-        // Gaya Floating premium
+        // Gaya Floating premium di bagian bawah layar
         behavior: SnackBarBehavior.floating,
         backgroundColor: Colors.white,
         elevation: 6,
-        // Naikkan posisi SnackBar di atas BottomNavigationBar (menggunakan margin)
         margin: EdgeInsets.only(
-          bottom: bottomMargin ?? 90, // Menghindari tertutup BottomNav bar
-          left: 20,
-          right: 20,
+          bottom: bottomMargin ?? 16,
+          left: 16,
+          right: 16,
         ),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         shape: RoundedRectangleBorder(

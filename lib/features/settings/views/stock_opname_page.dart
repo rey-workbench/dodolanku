@@ -72,11 +72,12 @@ class _StockOpnamePageState extends ConsumerState<StockOpnamePage> {
         AppFormField(
           controller: priceController,
           label: 'Harga Jual (Rp)',
-          hint: 'Contoh: 3100',
+          hint: 'Contoh: 3.100',
           keyboardType: TextInputType.number,
+          inputFormatters: [CurrencyInputFormatter()],
           validator: (val) {
             if (val == null || val.trim().isEmpty) return 'Harga tidak boleh kosong';
-            if (double.tryParse(val) == null) return 'Harga harus berupa angka';
+            if (double.tryParse(val.replaceAll('.', '')) == null) return 'Harga harus berupa angka';
             return null;
           },
         ),
@@ -96,7 +97,7 @@ class _StockOpnamePageState extends ConsumerState<StockOpnamePage> {
       onConfirm: () async {
         final finalBarcode = barcodeController.text.trim();
         final name = nameController.text.trim();
-        final price = double.parse(priceController.text);
+        final price = double.parse(priceController.text.replaceAll('.', ''));
         final stock = int.parse(stockController.text);
 
         await db.insertProduct(finalBarcode, name, price, stock);

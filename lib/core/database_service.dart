@@ -25,20 +25,26 @@ class DatabaseService {
       var localPath = join(databasesPath, DatabaseConfig.localDbName);
 
       Future<void> copyGlobalDb() async {
-        await Directory(dirname(globalPath)).create(recursive: true);
-        ByteData data = await rootBundle.load(DatabaseConfig.assetDbPath);
-        List<int> bytes = data.buffer.asUint8List(
-          data.offsetInBytes,
-          data.lengthInBytes,
-        );
-        await File(globalPath).writeAsBytes(bytes, flush: true);
+        try {
+          await Directory(dirname(globalPath)).create(recursive: true);
+          ByteData data = await rootBundle.load(DatabaseConfig.assetDbPath);
+          List<int> bytes = data.buffer.asUint8List(
+            data.offsetInBytes,
+            data.lengthInBytes,
+          );
+          await File(globalPath).writeAsBytes(bytes, flush: true);
+        } catch (_) {}
       }
 
       if (!await databaseExists(globalPath)) {
         await copyGlobalDb();
       }
 
-      _globalDb = await openDatabase(globalPath);
+      if (await databaseExists(globalPath)) {
+        try {
+          _globalDb = await openDatabase(globalPath);
+        } catch (_) {}
+      }
 
       Database db = await openDatabase(localPath);
       await db.execute('PRAGMA journal_mode = WAL;');

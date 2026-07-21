@@ -284,7 +284,7 @@ class DatabaseService {
     );
   }
 
-  /// Produk dengan stok <= [threshold].
+  /// Produk dengan stok <= [threshold], hanya yang sudah dikonfigurasi (price > 0).
   Future<List<Map<String, dynamic>>> getLowStockProducts({
     int threshold = 5,
   }) async {
@@ -292,7 +292,7 @@ class DatabaseService {
     return await _db!.query(
       'products',
       columns: ['barcode', 'name', 'price', 'stock'],
-      where: 'stock <= ? AND name IS NOT NULL AND name != ""',
+      where: 'stock <= ? AND price > 0 AND name IS NOT NULL AND name != ""',
       whereArgs: [threshold],
       orderBy: 'stock ASC',
       limit: 10,

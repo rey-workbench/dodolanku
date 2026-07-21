@@ -47,7 +47,9 @@ class DatabaseService {
       }
 
       Database db = await openDatabase(localPath);
-      await db.execute('PRAGMA journal_mode = WAL;');
+      try {
+        await db.rawQuery('PRAGMA journal_mode = WAL;');
+      } catch (_) {}
 
       // 1. Create tables & indexes from Schema (must run BEFORE migrations)
       for (final query in DatabaseSchema.createTablesQueries) {

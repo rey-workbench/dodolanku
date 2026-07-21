@@ -103,7 +103,7 @@ class ScannerNotifier extends Notifier<ScannerState> {
 
   // ── Barcode Lookup ──────────────────────────
 
-  Future<bool> lookupBarcode(String barcode) async {
+  Future<bool> lookupBarcode(String barcode, {bool isUpdate = false}) async {
     final clean = barcode.trim();
     if (clean.isEmpty) return false;
 
@@ -128,7 +128,7 @@ class ScannerNotifier extends Notifier<ScannerState> {
       }
 
       // Add to cart
-      addToCart(barcode: clean, name: name, price: price);
+      addToCart(barcode: clean, name: name, price: price, increment: !isUpdate);
 
       state = state.copyWith(
         scanResult: clean,
@@ -164,7 +164,7 @@ class ScannerNotifier extends Notifier<ScannerState> {
       stock: stock,
     );
     await _productRepo.insertProduct(product);
-    await lookupBarcode(barcode);
+    await lookupBarcode(barcode, isUpdate: true);
   }
 
   Future<void> updateProductDetails({
@@ -173,16 +173,20 @@ class ScannerNotifier extends Notifier<ScannerState> {
     required int stock,
   }) async {
     await _productRepo.updatePriceAndStock(barcode, price: price, stock: stock);
-    await lookupBarcode(barcode);
+    await lookupBarcode(barcode, isUpdate: true);
   }
 
   // ── Cart Management ─────────────────────────
 
-  void addToCart({required String barcode, required String name, required double price}) {
+  void addToCart({required String barcode, required String name, required double price, bool increment = true}) {
     final cart = List<CartItem>.from(state.cart);
     final idx = cart.indexWhere((c) => c.barcode == barcode);
     if (idx >= 0) {
-      cart[idx] = cart[idx].copyWith(qty: cart[idx].qty + 1);
+      cart[idx] = cart[idx].copyWith(
+        qty: increment ? cart[idx].qty + 1 : cart[idx].qty,
+        price: price,
+        name: name,
+      );
     } else {
       cart.insert(0, CartItem(barcode: barcode, name: name, price: price));
     }

@@ -242,7 +242,7 @@ class _ScannerPageState extends ConsumerState<ScannerPage> {
                   left: 20,
                   right: 20,
                   top: 20,
-                  bottom: MediaQuery.of(dialogCtx).viewInsets.bottom + 20,
+                  bottom: MediaQuery.of(dialogCtx).viewInsets.bottom + MediaQuery.of(dialogCtx).padding.bottom + 20,
                 ),
                 decoration: const BoxDecoration(
                   color: Colors.white,

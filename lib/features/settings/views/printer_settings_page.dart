@@ -254,52 +254,89 @@ class _PrinterSettingsPageState extends State<PrinterSettingsPage> {
               ),
             )
           else
-            Column(
-              children: _devices.map((device) {
-                final isCurrent = _connectedDeviceMac == device.macAdress;
-                return Container(
-                  margin: const EdgeInsets.only(bottom: 8),
-                  child: AppCard(
-                    padding: const EdgeInsets.all(12),
-                    child: ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      leading: CircleAvatar(
-                        backgroundColor: isCurrent ? primary.withValues(alpha: 0.1) : Colors.grey[100],
-                        child: Icon(Icons.print, color: isCurrent ? primary : Colors.grey),
-                      ),
-                      title: Text(
-                        device.name,
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                      ),
-                      subtitle: Text(device.macAdress, style: const TextStyle(fontSize: 11)),
-                      trailing: isCurrent
-                          ? Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: Colors.green[50],
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: const Text(
-                                'Aktif',
-                                style: TextStyle(color: Colors.green, fontSize: 11, fontWeight: FontWeight.bold),
-                              ),
-                            )
-                          : ElevatedButton(
-                              onPressed: () => _connectPrinter(device),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: primary,
-                                foregroundColor: Colors.white,
-                                elevation: 0,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8),
+            Builder(
+              builder: (context) {
+                final audioKeywords = [
+                  'speaker', 'airpods', 'buds', 'headset', 'audio', 'soundcore',
+                  'tws', 'galaxy', 'watch', 'earbuds', 'bose', 'sony', 'jbl',
+                  'earphone', 'headphone', 'tv', 'mac', 'iphone', 'ipad', 'pc', 'laptop'
+                ];
+                final likelyPrinters = <BluetoothInfo>[];
+                final otherDevices = <BluetoothInfo>[];
+                
+                for (final d in _devices) {
+                  final lowerName = d.name.toLowerCase();
+                  if (audioKeywords.any((kw) => lowerName.contains(kw))) {
+                    otherDevices.add(d);
+                  } else {
+                    likelyPrinters.add(d);
+                  }
+                }
+
+                Widget buildDeviceCard(BluetoothInfo device) {
+                  final isCurrent = _connectedDeviceMac == device.macAdress;
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 8),
+                    child: AppCard(
+                      padding: const EdgeInsets.all(12),
+                      child: ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        leading: CircleAvatar(
+                          backgroundColor: isCurrent ? primary.withValues(alpha: 0.1) : Colors.grey[100],
+                          child: Icon(Icons.print, color: isCurrent ? primary : Colors.grey),
+                        ),
+                        title: Text(
+                          device.name,
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                        ),
+                        subtitle: Text(device.macAdress, style: const TextStyle(fontSize: 11)),
+                        trailing: isCurrent
+                            ? Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: Colors.green[50],
+                                  borderRadius: BorderRadius.circular(6),
                                 ),
+                                child: const Text(
+                                  'Aktif',
+                                  style: TextStyle(color: Colors.green, fontSize: 11, fontWeight: FontWeight.bold),
+                                ),
+                              )
+                            : ElevatedButton(
+                                onPressed: () => _connectPrinter(device),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: primary,
+                                  foregroundColor: Colors.white,
+                                  elevation: 0,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                ),
+                                child: const Text('Hubungkan', style: TextStyle(fontSize: 12)),
                               ),
-                              child: const Text('Hubungkan', style: TextStyle(fontSize: 12)),
-                            ),
+                      ),
                     ),
-                  ),
+                  );
+                }
+
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    if (likelyPrinters.isNotEmpty)
+                      ...likelyPrinters.map(buildDeviceCard),
+                    if (otherDevices.isNotEmpty) ...[
+                      const Padding(
+                        padding: EdgeInsets.only(top: 16, bottom: 12),
+                        child: Text(
+                          'Perangkat Lainnya (Bukan Printer)',
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.grey),
+                        ),
+                      ),
+                      ...otherDevices.map(buildDeviceCard),
+                    ],
+                  ],
                 );
-              }).toList(),
+              }
             ),
         ],
       ),

@@ -175,13 +175,18 @@ class SettingsPage extends ConsumerWidget {
             title: 'Database & Sinkronisasi',
             tiles: [
               FutureBuilder<int>(
-                future: ref.read(databaseServiceProvider).getTotalProductsCount(),
+                future: ref.read(databaseServiceProvider).getGlobalProductsCount(),
                 builder: (context, snapshot) {
-                  final count = snapshot.data ?? 0;
+                  final count = snapshot.data;
+                  final text = (count == null)
+                      ? 'Memuat...'
+                      : (count == 0)
+                          ? 'DB global belum termuat'
+                          : '${count.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.')} item master termuat';
                   return AppSettingsTile(
                     icon: Icons.storage_outlined,
                     title: 'Info Database Barcode Lokal',
-                    subtitle: '${count.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.')} item master termuat',
+                    subtitle: text,
                   );
                 },
               ),

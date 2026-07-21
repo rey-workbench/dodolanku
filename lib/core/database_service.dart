@@ -98,12 +98,19 @@ class DatabaseService {
         'store_phone': '',
         'qris_data': '',
         'header_msg': '',
-        'footer_msg': 'Terima Kasih'
+        'footer_msg': 'Terima Kasih',
       };
     }
     final rows = await _db!.query(
       'receipt_config',
-      columns: ['store_name', 'store_address', 'store_phone', 'qris_data', 'header_msg', 'footer_msg'],
+      columns: [
+        'store_name',
+        'store_address',
+        'store_phone',
+        'qris_data',
+        'header_msg',
+        'footer_msg',
+      ],
       where: 'id = 1',
     );
     if (rows.isNotEmpty) {
@@ -115,7 +122,7 @@ class DatabaseService {
       'store_phone': '',
       'qris_data': '',
       'header_msg': '',
-      'footer_msg': 'Terima Kasih'
+      'footer_msg': 'Terima Kasih',
     };
   }
 
@@ -128,19 +135,15 @@ class DatabaseService {
     required String footerMsg,
   }) async {
     if (_db == null) throw Exception('Database belum siap');
-    await _db!.insert(
-      'receipt_config',
-      {
-        'id': 1,
-        'store_name': storeName.trim(),
-        'store_address': storeAddress.trim(),
-        'store_phone': storePhone?.trim() ?? '',
-        'qris_data': qrisData?.trim() ?? '',
-        'header_msg': headerMsg?.trim() ?? '',
-        'footer_msg': footerMsg.trim(),
-      },
-      conflictAlgorithm: ConflictAlgorithm.replace,
-    );
+    await _db!.insert('receipt_config', {
+      'id': 1,
+      'store_name': storeName.trim(),
+      'store_address': storeAddress.trim(),
+      'store_phone': storePhone?.trim() ?? '',
+      'qris_data': qrisData?.trim() ?? '',
+      'header_msg': headerMsg?.trim() ?? '',
+      'footer_msg': footerMsg.trim(),
+    }, conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
   // ─────────────────────────────────────────────
@@ -182,9 +185,14 @@ class DatabaseService {
     try {
       final tursoUrl = dotenv.env['TURSO_DATABASE_URL'];
       final tursoToken = dotenv.env['TURSO_AUTH_TOKEN'];
-      if (tursoUrl == null || tursoUrl.isEmpty || tursoToken == null || tursoToken.isEmpty) return;
+      if (tursoUrl == null ||
+          tursoUrl.isEmpty ||
+          tursoToken == null ||
+          tursoToken.isEmpty)
+        return;
 
-      final httpUrl = '${tursoUrl.replaceFirst('libsql://', 'https://')}/v2/pipeline';
+      final httpUrl =
+          '${tursoUrl.replaceFirst('libsql://', 'https://')}/v2/pipeline';
       final cleanBc = barcode.trim();
       final cleanName = name.trim();
       if (cleanBc.isEmpty || cleanName.isEmpty) return;
@@ -200,15 +208,16 @@ class DatabaseService {
             {
               "type": "execute",
               "stmt": {
-                "sql": "INSERT OR IGNORE INTO masterproduct (barcode, name) VALUES (?, ?)",
+                "sql":
+                    "INSERT OR IGNORE INTO masterproduct (barcode, name) VALUES (?, ?)",
                 "args": [
                   {"type": "text", "value": cleanBc},
-                  {"type": "text", "value": cleanName}
-                ]
-              }
+                  {"type": "text", "value": cleanName},
+                ],
+              },
             },
-            {"type": "close"}
-          ]
+            {"type": "close"},
+          ],
         }),
       );
     } catch (_) {
@@ -216,15 +225,21 @@ class DatabaseService {
     }
   }
 
-  Future<void> insertProduct(String barcode, String name, double price, int stock) async {
+  Future<void> insertProduct(
+    String barcode,
+    String name,
+    double price,
+    int stock,
+  ) async {
     if (_db == null) throw Exception('Database belum siap');
     final cleanBc = barcode.trim();
     final cleanName = name.trim();
-    await _db!.insert(
-      'products',
-      {'barcode': cleanBc, 'name': cleanName, 'price': price, 'stock': stock},
-      conflictAlgorithm: ConflictAlgorithm.replace,
-    );
+    await _db!.insert('products', {
+      'barcode': cleanBc,
+      'name': cleanName,
+      'price': price,
+      'stock': stock,
+    }, conflictAlgorithm: ConflictAlgorithm.replace);
 
     // Otomatis PUSH ke Turso Cloud di background saat user tambah produk baru
     _pushSingleProductToTurso(cleanBc, cleanName);
@@ -251,7 +266,11 @@ class DatabaseService {
   }
 
   /// Update harga dan/atau stok produk yang sudah terdaftar.
-  Future<void> updatePriceAndStock(String barcode, {double? price, int? stock}) async {
+  Future<void> updatePriceAndStock(
+    String barcode, {
+    double? price,
+    int? stock,
+  }) async {
     if (_db == null) throw Exception('Database belum siap');
     final data = <String, dynamic>{};
     if (price != null) data['price'] = price;
@@ -266,7 +285,9 @@ class DatabaseService {
   }
 
   /// Produk dengan stok <= [threshold].
-  Future<List<Map<String, dynamic>>> getLowStockProducts({int threshold = 5}) async {
+  Future<List<Map<String, dynamic>>> getLowStockProducts({
+    int threshold = 5,
+  }) async {
     if (_db == null) return [];
     return await _db!.query(
       'products',
@@ -326,7 +347,7 @@ class DatabaseService {
           'qty': item['qty'],
           'subtotal': item['subtotal'],
         });
-        
+
         final cleanBarcode = (item['barcode'] as String).trim();
         final qty = item['qty'] as int;
         batch.rawUpdate(
@@ -335,7 +356,7 @@ class DatabaseService {
         );
       }
       await batch.commit(noResult: true);
-      
+
       return txId;
     });
   }
@@ -345,18 +366,36 @@ class DatabaseService {
     if (_db == null) return [];
     return await _db!.query(
       'transactions',
-      columns: ['id', 'created_at', 'total_amount', 'payment_method', 'amount_paid', 'change_amount', 'status'],
+      columns: [
+        'id',
+        'created_at',
+        'total_amount',
+        'payment_method',
+        'amount_paid',
+        'change_amount',
+        'status',
+      ],
       orderBy: 'created_at DESC',
       limit: limit,
     );
   }
 
   /// Item-item dalam satu transaksi.
-  Future<List<Map<String, dynamic>>> getTransactionItems(int transactionId) async {
+  Future<List<Map<String, dynamic>>> getTransactionItems(
+    int transactionId,
+  ) async {
     if (_db == null) return [];
     return await _db!.query(
       'transaction_items',
-      columns: ['id', 'transaction_id', 'barcode', 'product_name', 'price', 'qty', 'subtotal'],
+      columns: [
+        'id',
+        'transaction_id',
+        'barcode',
+        'product_name',
+        'price',
+        'qty',
+        'subtotal',
+      ],
       where: 'transaction_id = ?',
       whereArgs: [transactionId],
     );
@@ -369,13 +408,20 @@ class DatabaseService {
   /// Ringkasan dashboard hari ini vs kemarin.
   Future<Map<String, dynamic>> getDashboardStats() async {
     if (_db == null) {
-      return {'totalToday': 0.0, 'countToday': 0, 'totalYesterday': 0.0, 'countYesterday': 0};
+      return {
+        'totalToday': 0.0,
+        'countToday': 0,
+        'totalYesterday': 0.0,
+        'countYesterday': 0,
+      };
     }
 
     final today = DateTime.now();
-    final todayStr = '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
+    final todayStr =
+        '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
     final yesterday = today.subtract(const Duration(days: 1));
-    final yestStr = '${yesterday.year}-${yesterday.month.toString().padLeft(2, '0')}-${yesterday.day.toString().padLeft(2, '0')}';
+    final yestStr =
+        '${yesterday.year}-${yesterday.month.toString().padLeft(2, '0')}-${yesterday.day.toString().padLeft(2, '0')}';
 
     final todayRows = await _db!.rawQuery(
       "SELECT COALESCE(SUM(total_amount),0) AS total, COUNT(*) AS cnt FROM transactions WHERE created_at LIKE ? AND status='selesai'",
@@ -397,13 +443,16 @@ class DatabaseService {
   /// Produk terlaris berdasarkan total qty terjual.
   Future<List<Map<String, dynamic>>> getTopProducts({int limit = 5}) async {
     if (_db == null) return [];
-    return await _db!.rawQuery('''
+    return await _db!.rawQuery(
+      '''
       SELECT product_name, barcode, SUM(qty) AS total_qty, SUM(subtotal) AS total_revenue
       FROM transaction_items
       GROUP BY barcode
       ORDER BY total_qty DESC
       LIMIT ?
-    ''', [limit]);
+    ''',
+      [limit],
+    );
   }
 
   // ─────────────────────────────────────────────
@@ -414,7 +463,16 @@ class DatabaseService {
     if (_db == null) return [];
     return await _db!.query(
       'debt_notes',
-      columns: ['id', 'debtor_name', 'description', 'amount', 'paid', 'created_at', 'due_date', 'is_settled'],
+      columns: [
+        'id',
+        'debtor_name',
+        'description',
+        'amount',
+        'paid',
+        'created_at',
+        'due_date',
+        'is_settled',
+      ],
       orderBy: 'is_settled ASC, created_at DESC',
     );
   }
@@ -481,7 +539,10 @@ class DatabaseService {
     final tursoUrl = dotenv.env['TURSO_DATABASE_URL'];
     final tursoToken = dotenv.env['TURSO_AUTH_TOKEN'];
 
-    if (tursoUrl == null || tursoUrl.isEmpty || tursoToken == null || tursoToken.isEmpty) {
+    if (tursoUrl == null ||
+        tursoUrl.isEmpty ||
+        tursoToken == null ||
+        tursoToken.isEmpty) {
       // Jika kredensial Turso di .env belum diisi, fallback ke offline sync
       return await syncMasterProductsToLocal();
     }
@@ -500,15 +561,17 @@ class DatabaseService {
         "requests": [
           {
             "type": "execute",
-            "stmt": {"sql": "SELECT barcode, name FROM masterproduct"}
+            "stmt": {"sql": "SELECT barcode, name FROM masterproduct"},
           },
-          {"type": "close"}
-        ]
+          {"type": "close"},
+        ],
       }),
     );
 
     if (response.statusCode != 200) {
-      throw Exception('Gagal menghubungi Turso API (${response.statusCode}): ${response.body}');
+      throw Exception(
+        'Gagal menghubungi Turso API (${response.statusCode}): ${response.body}',
+      );
     }
 
     final data = jsonDecode(response.body);
@@ -529,7 +592,10 @@ class DatabaseService {
         for (final row in rows) {
           final barcode = row[0]?['value']?.toString().trim();
           final name = row[1]?['value']?.toString().trim();
-          if (barcode != null && barcode.isNotEmpty && name != null && name.isNotEmpty) {
+          if (barcode != null &&
+              barcode.isNotEmpty &&
+              name != null &&
+              name.isNotEmpty) {
             tursoBarcodes.add(barcode);
             batch.rawInsert(
               '''
@@ -550,14 +616,18 @@ class DatabaseService {
       final localProducts = await _db!.query(
         'products',
         columns: ['barcode', 'name'],
-        where: 'barcode IS NOT NULL AND barcode != "" AND name IS NOT NULL AND name != ""',
+        where:
+            'barcode IS NOT NULL AND barcode != "" AND name IS NOT NULL AND name != ""',
       );
 
       final toPush = <Map<String, String>>[];
       for (final p in localProducts) {
         final barcode = (p['barcode'] as String?)?.trim();
         final name = (p['name'] as String?)?.trim();
-        if (barcode != null && barcode.isNotEmpty && name != null && name.isNotEmpty) {
+        if (barcode != null &&
+            barcode.isNotEmpty &&
+            name != null &&
+            name.isNotEmpty) {
           if (!tursoBarcodes.contains(barcode)) {
             toPush.add({'barcode': barcode, 'name': name});
           }
@@ -573,12 +643,13 @@ class DatabaseService {
             return {
               "type": "execute",
               "stmt": {
-                "sql": "INSERT OR IGNORE INTO masterproduct (barcode, name) VALUES (?, ?)",
+                "sql":
+                    "INSERT OR IGNORE INTO masterproduct (barcode, name) VALUES (?, ?)",
                 "args": [
                   {"type": "text", "value": item['barcode']},
-                  {"type": "text", "value": item['name']}
-                ]
-              }
+                  {"type": "text", "value": item['name']},
+                ],
+              },
             };
           }).toList();
 
@@ -622,7 +693,8 @@ class DatabaseService {
         final barcode = (item['barcode'] as String?)?.trim();
         final name = (item['name'] as String?)?.trim();
 
-        if (barcode == null || barcode.isEmpty || name == null || name.isEmpty) continue;
+        if (barcode == null || barcode.isEmpty || name == null || name.isEmpty)
+          continue;
 
         // INSERT OR IGNORE: memasukkan data HANYA jika barcode belum ada di local db
         batch.rawInsert(
@@ -642,7 +714,7 @@ class DatabaseService {
     return newItemsCount;
   }
 
-  /// Mendapatkan jumlah item di Master Database Global
+  /// Mendapatkan jumlah item di Master Database Global (global_product.db asset)
   Future<int> getGlobalProductsCount() async {
     await initDb();
     if (_globalDb == null) return 0;

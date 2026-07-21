@@ -231,81 +231,101 @@ class _ScannerPageState extends ConsumerState<ScannerPage> {
 
             if (!context.mounted) return CheckoutResult(total: 0, amountPaid: 0, change: 0, paymentMethod: 'qris', items: []);
 
-            final proceed = await showDialog<bool>(
+            final proceed = await showModalBottomSheet<bool>(
               context: context,
-              barrierDismissible: false,
-              builder: (dialogCtx) => Dialog(
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                child: Padding(
-                  padding: const EdgeInsets.all(24.0),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Text(
-                        'Scan QRIS Dinamis',
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+              isScrollControlled: true,
+              isDismissible: false,
+              enableDrag: false,
+              backgroundColor: Colors.transparent,
+              builder: (dialogCtx) => Container(
+                padding: EdgeInsets.only(
+                  left: 20,
+                  right: 20,
+                  top: 20,
+                  bottom: MediaQuery.of(dialogCtx).viewInsets.bottom + 20,
+                ),
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 40,
+                      height: 5,
+                      margin: const EdgeInsets.only(bottom: 20),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[300],
+                        borderRadius: BorderRadius.circular(10),
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Total: Rp ${formatRupiah(total)}',
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.primary,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
+                    ),
+                    const Text(
+                      'Scan QRIS Dinamis',
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Total: Rp ${formatRupiah(total)}',
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.primary,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: SizedBox(
+                        width: 220,
+                        height: 220,
+                        child: Image.network(
+                          'https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${Uri.encodeComponent(dynamicQris)}',
+                          loadingBuilder: (context, child, loadingProgress) {
+                            if (loadingProgress == null) return child;
+                            return const Center(child: CircularProgressIndicator());
+                          },
+                          errorBuilder: (context, error, stackTrace) {
+                            return const Center(
+                              child: Text(
+                                'Gagal memuat QR Code. Cek koneksi internet.',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(fontSize: 12),
+                              ),
+                            );
+                          },
                         ),
                       ),
-                      const SizedBox(height: 20),
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(12),
-                        child: SizedBox(
-                          width: 220,
-                          height: 220,
-                          child: Image.network(
-                            'https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${Uri.encodeComponent(dynamicQris)}',
-                            loadingBuilder: (context, child, loadingProgress) {
-                              if (loadingProgress == null) return child;
-                              return const Center(child: CircularProgressIndicator());
-                            },
-                            errorBuilder: (context, error, stackTrace) {
-                              return const Center(
-                                child: Text(
-                                  'Gagal memuat QR Code. Cek koneksi internet.',
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(fontSize: 12),
-                                ),
-                              );
-                            },
+                    ),
+                    const SizedBox(height: 32),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () => Navigator.pop(dialogCtx, false),
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            ),
+                            child: const Text('Batal'),
                           ),
                         ),
-                      ),
-                      const SizedBox(height: 20),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: OutlinedButton(
-                              onPressed: () => Navigator.pop(dialogCtx, false),
-                              style: OutlinedButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(vertical: 12),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                              ),
-                              child: const Text('Batal'),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: () => Navigator.pop(dialogCtx, true),
+                            style: ElevatedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              elevation: 0,
                             ),
+                            child: const Text('Sudah Bayar'),
                           ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: ElevatedButton(
-                              onPressed: () => Navigator.pop(dialogCtx, true),
-                              style: ElevatedButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(vertical: 12),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                              ),
-                              child: const Text('Sudah Bayar'),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                  ],
                 ),
               ),
             );

@@ -13,10 +13,10 @@ class CartItem {
 
   double get subtotal => price * qty;
 
-  CartItem copyWith({int? qty}) => CartItem(
+  CartItem copyWith({String? name, double? price, int? qty}) => CartItem(
         barcode: barcode,
-        name: name,
-        price: price,
+        name: name ?? this.name,
+        price: price ?? this.price,
         qty: qty ?? this.qty,
       );
 }

@@ -69,13 +69,14 @@ class _ScannerPageState extends ConsumerState<ScannerPage> {
         AppFormField(
           controller: priceController,
           label: 'Harga Jual (Rp)',
-          hint: 'Contoh: 15000',
+          hint: 'Contoh: 15.000',
           keyboardType: TextInputType.number,
+          inputFormatters: [CurrencyInputFormatter()],
           validator: (val) {
             if (val == null || val.trim().isEmpty) {
               return 'Harga tidak boleh kosong';
             }
-            if (double.tryParse(val) == null) return 'Harga harus berupa angka';
+            if (double.tryParse(val.replaceAll('.', '')) == null) return 'Harga harus berupa angka';
             return null;
           },
         ),
@@ -97,7 +98,7 @@ class _ScannerPageState extends ConsumerState<ScannerPage> {
       ],
       onConfirm: () async {
         final name = nameController.text.trim();
-        final price = double.parse(priceController.text);
+        final price = double.parse(priceController.text.replaceAll('.', ''));
         final stock = int.parse(stockController.text);
         await ref
             .read(scannerProvider.notifier)

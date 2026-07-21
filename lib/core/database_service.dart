@@ -192,8 +192,9 @@ class DatabaseService {
       if (tursoUrl == null ||
           tursoUrl.isEmpty ||
           tursoToken == null ||
-          tursoToken.isEmpty)
+          tursoToken.isEmpty) {
         return;
+      }
 
       final httpUrl =
           '${tursoUrl.replaceFirst('libsql://', 'https://')}/v2/pipeline';
@@ -703,8 +704,9 @@ class DatabaseService {
         final barcode = (item['barcode'] as String?)?.trim();
         final name = (item['name'] as String?)?.trim();
 
-        if (barcode == null || barcode.isEmpty || name == null || name.isEmpty)
+        if (barcode == null || barcode.isEmpty || name == null || name.isEmpty) {
           continue;
+        }
 
         // INSERT OR IGNORE: memasukkan data HANYA jika barcode belum ada di local db
         batch.rawInsert(

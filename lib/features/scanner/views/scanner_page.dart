@@ -134,13 +134,14 @@ class _ScannerPageState extends ConsumerState<ScannerPage> {
         AppFormField(
           controller: priceController,
           label: 'Harga Jual (Rp)',
-          hint: 'Contoh: 15000',
+          hint: 'Contoh: 15.000',
           keyboardType: TextInputType.number,
+          inputFormatters: [CurrencyInputFormatter()],
           validator: (val) {
             if (val == null || val.trim().isEmpty) {
               return 'Harga tidak boleh kosong';
             }
-            final v = double.tryParse(val.trim());
+            final v = double.tryParse(val.replaceAll('.', '').trim());
             if (v == null || v <= 0) return 'Harga harus lebih dari 0';
             return null;
           },
@@ -178,7 +179,7 @@ class _ScannerPageState extends ConsumerState<ScannerPage> {
       confirmLabel: 'Simpan & Lanjutkan',
       onConfirm: () async {
         final newPrice = needPrice
-            ? double.parse(priceController.text.trim())
+            ? double.parse(priceController.text.replaceAll('.', '').trim())
             : currentPrice;
         final newStock = needStock
             ? int.parse(stockController.text.trim())
@@ -859,6 +860,7 @@ class _PaymentBottomSheetState extends State<_PaymentBottomSheet> {
               TextField(
                 controller: _amountController,
                 keyboardType: TextInputType.number,
+                inputFormatters: [CurrencyInputFormatter()],
                 autofocus: true,
                 style: const TextStyle(
                   fontSize: 16,
@@ -958,8 +960,9 @@ class _PaymentBottomSheetState extends State<_PaymentBottomSheet> {
                     onPressed: _isProcessing
                         ? null
                         : () async {
-                            double paid =
-                                double.tryParse(_amountController.text) ?? 0;
+                            double paid = double.tryParse(
+                                    _amountController.text.replaceAll('.', '')) ??
+                                0;
                             if (_selectedMethod != 'tunai') paid = widget.total;
                             if (_selectedMethod == 'tunai' &&
                                 paid < widget.total) {

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 /// Definisi satu field input untuk [showAppFormModal].
 class AppFormField {
@@ -7,6 +8,7 @@ class AppFormField {
   final String? hint;
   final TextInputType keyboardType;
   final String? Function(String?)? validator;
+  final List<TextInputFormatter>? inputFormatters;
 
   const AppFormField({
     required this.controller,
@@ -14,6 +16,7 @@ class AppFormField {
     this.hint,
     this.keyboardType = TextInputType.text,
     this.validator,
+    this.inputFormatters,
   });
 }
 
@@ -144,6 +147,7 @@ class _AppFormBottomSheetState extends State<_AppFormBottomSheet> {
                               controller: f.controller,
                               keyboardType: f.keyboardType,
                               validator: f.validator,
+                              inputFormatters: f.inputFormatters,
                               style: const TextStyle(fontSize: 14),
                               decoration: InputDecoration(
                                 hintText: f.hint,

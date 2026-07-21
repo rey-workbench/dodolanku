@@ -28,11 +28,12 @@ class DebtPage extends ConsumerWidget {
         AppFormField(
           controller: amountCtrl,
           label: 'Jumlah Hutang (Rp)',
-          hint: 'Contoh: 50000',
+          hint: 'Contoh: 50.000',
           keyboardType: TextInputType.number,
+          inputFormatters: [CurrencyInputFormatter()],
           validator: (v) {
             if (v == null || v.trim().isEmpty) return 'Jumlah tidak boleh kosong';
-            if (double.tryParse(v) == null) return 'Harus berupa angka';
+            if (double.tryParse(v.replaceAll('.', '')) == null) return 'Harus berupa angka';
             return null;
           },
         ),
@@ -50,7 +51,7 @@ class DebtPage extends ConsumerWidget {
       onConfirm: () {
         ref.read(debtProvider.notifier).addDebt(
               name: nameCtrl.text,
-              amount: double.parse(amountCtrl.text),
+              amount: double.parse(amountCtrl.text.replaceAll('.', '')),
               description: descCtrl.text.isNotEmpty ? descCtrl.text : null,
               dueDate: dueCtrl.text.isNotEmpty ? dueCtrl.text : null,
             );
@@ -73,9 +74,10 @@ class DebtPage extends ConsumerWidget {
           controller: amountCtrl,
           label: 'Nominal Pembayaran (Rp)',
           keyboardType: TextInputType.number,
+          inputFormatters: [CurrencyInputFormatter()],
           validator: (v) {
             if (v == null || v.trim().isEmpty) return 'Nominal tidak boleh kosong';
-            final val = double.tryParse(v);
+            final val = double.tryParse(v.replaceAll('.', ''));
             if (val == null || val <= 0) return 'Harus angka positif';
             if (val > remaining) return 'Melebihi sisa hutang';
             return null;
@@ -84,7 +86,7 @@ class DebtPage extends ConsumerWidget {
       ],
       confirmLabel: 'Bayar',
       onConfirm: () {
-        ref.read(debtProvider.notifier).payDebt(id, double.parse(amountCtrl.text));
+        ref.read(debtProvider.notifier).payDebt(id, double.parse(amountCtrl.text.replaceAll('.', '')));
         AppToast.show(context, message: 'Pembayaran hutang berhasil dicatat');
       },
     );

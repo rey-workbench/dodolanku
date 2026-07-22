@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dodolanku/core/widgets/app_widgets.dart';
 import 'package:dodolanku/features/settings/providers/profile_provider.dart';
 import 'package:dodolanku/features/scanner/providers/scanner_provider.dart';
+import 'package:dodolanku/core/services/gdrive_service.dart';
 import 'stock_opname_page.dart';
 import 'printer_settings_page.dart';
 import 'payment_method_page.dart';
@@ -187,6 +188,46 @@ class SettingsPage extends ConsumerWidget {
                     icon: Icons.storage_outlined,
                     title: 'Info Database Barcode Lokal',
                     subtitle: text,
+                  );
+                },
+              ),
+              AppSettingsTile(
+                icon: Icons.cloud_upload_outlined,
+                title: 'Backup ke Google Drive',
+                subtitle: 'Cadangkan database SQLite lokal ke Google Drive',
+                onTap: () async {
+                  AppToast.show(context, message: 'Menghubungkan ke Google Drive...');
+                  final error = await GDriveService.uploadBackup();
+                  if (context.mounted) {
+                    if (error == null) {
+                      AppToast.show(context, message: 'Berhasil melakukan backup ke Google Drive!');
+                    } else {
+                      AppToast.show(context, message: 'Gagal: $error');
+                    }
+                  }
+                },
+              ),
+              AppSettingsTile(
+                icon: Icons.cloud_download_outlined,
+                title: 'Restore dari Google Drive',
+                subtitle: 'Pulihkan database transaksi & stok dari Google Drive',
+                onTap: () async {
+                  showAppConfirmModal(
+                    context: context,
+                    title: 'Pulihkan Data?',
+                    message: 'Data lokal saat ini akan ditimpa dengan data cadangan dari Google Drive. Lanjutkan?',
+                    confirmLabel: 'Pulihkan',
+                    onConfirm: () async {
+                      AppToast.show(context, message: 'Mengunduh backup dari Google Drive...');
+                      final success = await GDriveService.restoreBackup();
+                      if (context.mounted) {
+                        if (success) {
+                          AppToast.show(context, message: 'Data berhasil dipulihkan!');
+                        } else {
+                          AppToast.show(context, message: 'File backup tidak ditemukan atau gagal dipulihkan.');
+                        }
+                      }
+                    },
                   );
                 },
               ),

@@ -47,6 +47,7 @@ jobs:
         run: |
           echo "TURSO_DATABASE_URL=${{ secrets.TURSO_DATABASE_URL }}" > .env
           echo "TURSO_AUTH_TOKEN=${{ secrets.TURSO_AUTH_TOKEN }}" >> .env
+          echo "GCP_GDRIVE_CLIENT_ID=${{ secrets.GCP_GDRIVE_CLIENT_ID }}" >> .env
 
       - name: Build Split Release APKs
         run: |

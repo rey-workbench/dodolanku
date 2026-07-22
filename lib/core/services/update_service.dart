@@ -57,9 +57,14 @@ class UpdateService {
           message: 'Versi baru aplikasi telah dirilis!\n\nCatatan Rilis:\n${data['name']}\n\nApakah Anda ingin mengunduhnya sekarang?',
           confirmLabel: 'Update Sekarang',
           onConfirm: () async {
-            final url = Uri.parse(apkUrl!);
-            if (await canLaunchUrl(url)) {
+            try {
+              final url = Uri.parse(apkUrl!);
               await launchUrl(url, mode: LaunchMode.externalApplication);
+            } catch (_) {
+              try {
+                final url = Uri.parse(apkUrl!);
+                await launchUrl(url, mode: LaunchMode.platformDefault);
+              } catch (_) {}
             }
           },
         );

@@ -10,7 +10,7 @@ final productRepositoryProvider = Provider<ProductRepository>((ref) {
 abstract class ProductRepository {
   Future<Product?> getProductDetails(String barcode);
   Future<void> insertProduct(Product product);
-  Future<void> updatePriceAndStock(String barcode, {double? price, int? stock});
+  Future<void> updatePriceAndStock(String barcode, {String? name, double? price, int? stock});
   Future<List<Product>> getLowStockProducts({int threshold = 5});
   Future<int> getTotalProductsCount();
   Future<String> getNextNonBarcodeCode();
@@ -49,8 +49,8 @@ class ProductRepositoryImpl implements ProductRepository {
   }
 
   @override
-  Future<void> updatePriceAndStock(String barcode, {double? price, int? stock}) async {
-    await _dbService.updatePriceAndStock(barcode, price: price, stock: stock);
+  Future<void> updatePriceAndStock(String barcode, {String? name, double? price, int? stock}) async {
+    await _dbService.updatePriceAndStock(barcode, name: name, price: price, stock: stock);
   }
 
   @override

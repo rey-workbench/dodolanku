@@ -215,7 +215,7 @@ class DatabaseService {
                   "type": "execute",
                   "stmt": {
                     "sql":
-                        "INSERT OR IGNORE INTO masterproduct (barcode, name) VALUES (?, ?)",
+                        "INSERT INTO masterproduct (barcode, name) VALUES (?, ?) ON CONFLICT(barcode) DO UPDATE SET name = excluded.name",
                     "args": [
                       {"type": "text", "value": cleanBc},
                       {"type": "text", "value": cleanName},
@@ -252,23 +252,34 @@ class DatabaseService {
     _pushSingleProductToTurso(cleanBc, cleanName);
   }
 
-  /// Update harga dan/atau stok produk yang sudah terdaftar.
+  /// Update nama, harga, dan/atau stok produk yang sudah terdaftar.
   Future<void> updatePriceAndStock(
     String barcode, {
+    String? name,
     double? price,
     int? stock,
   }) async {
     if (_db == null) throw Exception('Database belum siap');
+    final cleanBc = barcode.trim();
     final data = <String, dynamic>{};
+    if (name != null && name.trim().isNotEmpty) {
+      data['name'] = name.trim();
+    }
     if (price != null) data['price'] = price;
     if (stock != null) data['stock'] = stock;
     if (data.isEmpty) return;
+
     await _db!.update(
       'products',
       data,
       where: 'barcode = ?',
-      whereArgs: [barcode.trim()],
+      whereArgs: [cleanBc],
     );
+
+    // Jika nama diperbarui, otomatis update ke Turso Cloud di background
+    if (data.containsKey('name')) {
+      _pushSingleProductToTurso(cleanBc, data['name']);
+    }
   }
 
   /// Produk dengan stok <= [threshold], hanya yang sudah dikonfigurasi (price > 0).

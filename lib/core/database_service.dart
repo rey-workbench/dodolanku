@@ -761,4 +761,14 @@ class DatabaseService {
     _db?.close();
     _globalDb?.close();
   }
+
+  /// Memaksa SQLite untuk memindahkan (flush) data dari file WAL ke file .db utama.
+  /// Harus dipanggil sebelum mengcopy atau membackup file .db secara langsung.
+  Future<void> forceCheckpoint() async {
+    if (_db != null) {
+      try {
+        await _db!.rawQuery('PRAGMA wal_checkpoint(TRUNCATE);');
+      } catch (_) {}
+    }
+  }
 }

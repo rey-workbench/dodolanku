@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dodolanku/core/widgets/app_widgets.dart';
 import 'package:dodolanku/features/settings/providers/profile_provider.dart';
 import 'package:dodolanku/features/scanner/providers/scanner_provider.dart';
+import 'package:dodolanku/features/dashboard/providers/dashboard_provider.dart';
+import 'package:dodolanku/features/debt/providers/debt_provider.dart';
+import 'package:dodolanku/features/orders/providers/orders_provider.dart';
 import 'package:dodolanku/core/services/gdrive_service.dart';
 import 'stock_opname_page.dart';
 import 'printer_settings_page.dart';
@@ -196,6 +200,9 @@ class SettingsPage extends ConsumerWidget {
                 title: 'Backup ke Google Drive',
                 subtitle: 'Cadangkan database SQLite lokal ke Google Drive',
                 onTap: () async {
+                  final dbService = ref.read(databaseServiceProvider);
+                  await dbService.forceCheckpoint(); // Flush WAL ke .db sebelum backup
+                  
                   AppToast.show(context, message: 'Menghubungkan ke Google Drive...');
                   final error = await GDriveService.uploadBackup();
                   if (context.mounted) {
@@ -219,20 +226,27 @@ class SettingsPage extends ConsumerWidget {
                     confirmLabel: 'Pulihkan',
                     onConfirm: () async {
                       AppToast.show(context, message: 'Mengunduh backup dari Google Drive...');
+                      
+                      final dbService = ref.read(databaseServiceProvider);
+                      dbService.dispose(); // 1. TUTUP DB DULU AGAR TIDAK MENGUNCI FILE
+                      
                       final success = await GDriveService.restoreBackup();
+                      
+                      await dbService.initDb(); // 2. BUKA LAGI SETELAH DITIMPA
+                      
                       if (context.mounted) {
                         if (success) {
-                          // BUG-003 fix: reinit DB setelah file ditimpa agar
-                          // koneksi lama ditutup dan data baru langsung aktif.
-                          final dbService = ref.read(databaseServiceProvider);
-                          dbService.dispose();
-                          await dbService.initDb();
-                          if (context.mounted) {
-                            AppToast.show(
-                              context,
-                              message: 'Data berhasil dipulihkan! Silakan navigasi ulang.',
-                            );
-                          }
+                          // Muat ulang (Refresh) semua data di aplikasi tanpa harus keluar
+                          ref.invalidate(scannerProvider);
+                          ref.invalidate(profileProvider);
+                          ref.invalidate(dashboardProvider);
+                          ref.invalidate(debtProvider);
+                          ref.invalidate(ordersProvider);
+
+                          AppToast.show(
+                            context,
+                            message: 'Data berhasil dipulihkan! Semua layar telah diperbarui.',
+                          );
                         } else {
                           AppToast.show(context, message: 'File backup tidak ditemukan atau gagal dipulihkan.');
                         }

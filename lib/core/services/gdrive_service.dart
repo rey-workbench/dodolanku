@@ -184,10 +184,17 @@ class GDriveService {
         await for (final data in fileMedia.stream) {
           dataBytes.addAll(data);
         }
-        // BUG-003 fix: tulis ke file temp dulu, baru rename agar atomic
+        // Tulis ke file temp dulu
         final tmpFile = File('${localFile.path}.tmp');
         await tmpFile.writeAsBytes(dataBytes, flush: true);
+        
+        // Hapus file lama dan file WAL/SHM jika ada
         if (await localFile.exists()) await localFile.delete();
+        final walFile = File('${localFile.path}-wal');
+        if (await walFile.exists()) await walFile.delete();
+        final shmFile = File('${localFile.path}-shm');
+        if (await shmFile.exists()) await shmFile.delete();
+        
         await tmpFile.rename(localFile.path);
         return true;
       } finally {

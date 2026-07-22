@@ -12,7 +12,9 @@
     <application
         android:label="dodolanku"
         android:name="${applicationName}"
-        android:icon="@mipmap/launcher_icon">
+        android:icon="@mipmap/launcher_icon"
+        android:hasFragileUserData="true"
+        android:allowBackup="true">
         <activity
             android:name=".MainActivity"
             android:exported="true"

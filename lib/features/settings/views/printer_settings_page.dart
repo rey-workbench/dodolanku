@@ -1,16 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:dodolanku/features/settings/repositories/settings_repository.dart';
 import 'package:print_bluetooth_thermal/print_bluetooth_thermal.dart';
 import 'package:dodolanku/core/services/print_service.dart';
 import 'package:dodolanku/core/widgets/app_widgets.dart';
 
-class PrinterSettingsPage extends StatefulWidget {
+class PrinterSettingsPage extends ConsumerStatefulWidget {
   const PrinterSettingsPage({super.key});
 
   @override
-  State<PrinterSettingsPage> createState() => _PrinterSettingsPageState();
+  ConsumerState<PrinterSettingsPage> createState() => _PrinterSettingsPageState();
 }
 
-class _PrinterSettingsPageState extends State<PrinterSettingsPage> {
+class _PrinterSettingsPageState extends ConsumerState<PrinterSettingsPage> {
   final PrintService _printService = PrintService.instance;
   List<BluetoothInfo> _devices = [];
   bool _isScanning = false;
@@ -22,7 +24,7 @@ class _PrinterSettingsPageState extends State<PrinterSettingsPage> {
   @override
   void initState() {
     super.initState();
-    _autoPrint = _printService.isAutoPrintEnabled;
+    _autoPrint = ref.read(settingsRepositoryProvider).getIsAutoPrint();
     _checkConnectionStatus();
     _scanDevices();
   }
@@ -130,7 +132,7 @@ class _PrinterSettingsPageState extends State<PrinterSettingsPage> {
                     setState(() {
                       _autoPrint = val;
                     });
-                    _printService.setAutoPrint(val);
+                    ref.read(settingsRepositoryProvider).setAutoPrint(val);
                   },
                 ),
               ],

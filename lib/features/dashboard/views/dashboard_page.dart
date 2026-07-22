@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:dodolanku/features/scanner/repositories/product_repository.dart';
 import 'package:dodolanku/features/dashboard/providers/dashboard_provider.dart';
 import 'package:dodolanku/core/utils/currency_formatter.dart';
 import 'package:dodolanku/core/widgets/app_widgets.dart';
-import 'package:dodolanku/features/scanner/providers/scanner_provider.dart';
 import 'package:dodolanku/features/settings/providers/profile_provider.dart';
 
 class _LowStockLimitNotifier extends Notifier<int> {
@@ -380,8 +380,8 @@ class DashboardPage extends ConsumerWidget {
                                         required double price,
                                         required int stock,
                                       }) async {
-                                        final db = ref.read(databaseServiceProvider);
-                                        await db.updatePriceAndStock(
+                                        final productRepo = ref.read(productRepositoryProvider);
+                                        await productRepo.updatePriceAndStock(
                                           barcode,
                                           price: price,
                                           stock: stock,

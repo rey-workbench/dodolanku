@@ -1,7 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dodolanku/core/database_service.dart';
 import 'package:dodolanku/core/models/product_model.dart';
-import 'package:dodolanku/features/scanner/providers/scanner_provider.dart';
 
 final productRepositoryProvider = Provider<ProductRepository>((ref) {
   return ProductRepositoryImpl(ref.read(databaseServiceProvider));
@@ -14,12 +13,30 @@ abstract class ProductRepository {
   Future<List<Product>> getLowStockProducts({int threshold = 5});
   Future<int> getTotalProductsCount();
   Future<String> getNextNonBarcodeCode();
+  Future<List<Map<String, dynamic>>> searchProducts(String query);
+  Future<int> getGlobalProductsCount();
+  Future<int> syncMasterProductsFromTurso();
 }
 
 class ProductRepositoryImpl implements ProductRepository {
   final DatabaseService _dbService;
 
   ProductRepositoryImpl(this._dbService);
+
+  @override
+  Future<int> getGlobalProductsCount() async {
+    return await _dbService.getGlobalProductsCount();
+  }
+
+  @override
+  Future<int> syncMasterProductsFromTurso() async {
+    return await _dbService.syncMasterProductsFromTurso();
+  }
+
+  @override
+  Future<List<Map<String, dynamic>>> searchProducts(String query) async {
+    return await _dbService.searchProducts(query);
+  }
 
   @override
   Future<String> getNextNonBarcodeCode() async {

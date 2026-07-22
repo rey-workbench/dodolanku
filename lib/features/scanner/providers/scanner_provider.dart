@@ -6,12 +6,6 @@ import 'package:dodolanku/features/scanner/models/cart_item_model.dart';
 import 'package:dodolanku/features/scanner/repositories/product_repository.dart';
 import 'package:dodolanku/features/orders/repositories/transaction_repository.dart';
 
-final databaseServiceProvider = Provider<DatabaseService>((ref) {
-  final service = DatabaseService();
-  ref.onDispose(() => service.dispose());
-  return service;
-});
-
 // ─────────────────────────────────────────────
 // STATE
 // ─────────────────────────────────────────────

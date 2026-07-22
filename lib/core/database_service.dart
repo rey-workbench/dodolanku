@@ -7,12 +7,20 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dodolanku/core/config/app_config.dart';
 import 'package:dodolanku/core/services/network_service.dart';
 
 import 'package:dodolanku/core/database/database_schema.dart';
 import 'package:dodolanku/core/database/database_migrations.dart';
 import 'package:dodolanku/core/database/database_seeders.dart';
+
+/// Provider utama untuk mengakses [DatabaseService] di seluruh aplikasi.
+final databaseServiceProvider = Provider<DatabaseService>((ref) {
+  final service = DatabaseService();
+  ref.onDispose(() => service.dispose());
+  return service;
+});
 
 class DatabaseService {
   Database? _db;
@@ -423,6 +431,55 @@ class DatabaseService {
       where: 'transaction_id = ?',
       whereArgs: [transactionId],
     );
+  }
+
+  /// Mencari produk berdasarkan nama atau barcode
+  Future<List<Map<String, dynamic>>> searchProducts(String query) async {
+    if (_db == null) return [];
+    final q = '%$query%';
+    return await _db!.query(
+      'products',
+      columns: ['barcode', 'name', 'price', 'stock'],
+      where: 'name LIKE ? OR barcode LIKE ?',
+      whereArgs: [q, q],
+      orderBy: 'name ASC',
+      limit: 50,
+    );
+  }
+
+  /// Menghapus transaksi, opsional mengembalikan stok produk, dan menghapus item
+  Future<void> deleteTransaction(int transactionId, {bool restoreStock = true}) async {
+    if (_db == null) return;
+    
+    await _db!.transaction((txn) async {
+      final batch = txn.batch();
+
+      if (restoreStock) {
+        // 1. Ambil item untuk restore stok
+        final items = await txn.query(
+          'transaction_items',
+          columns: ['barcode', 'qty'],
+          where: 'transaction_id = ?',
+          whereArgs: [transactionId],
+        );
+        
+        // 2. Kembalikan stok
+        for (final item in items) {
+          final barcode = item['barcode'] as String;
+          final qty = item['qty'] as int;
+          batch.rawUpdate(
+            'UPDATE products SET stock = stock + ? WHERE barcode = ?',
+            [qty, barcode]
+          );
+        }
+      }
+      
+      // 3. Hapus item dan transaksi
+      batch.delete('transaction_items', where: 'transaction_id = ?', whereArgs: [transactionId]);
+      batch.delete('transactions', where: 'id = ?', whereArgs: [transactionId]);
+      
+      await batch.commit(noResult: true);
+    });
   }
 
   // ─────────────────────────────────────────────

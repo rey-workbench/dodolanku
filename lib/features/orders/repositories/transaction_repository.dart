@@ -1,7 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dodolanku/core/database_service.dart';
 import 'package:dodolanku/core/models/transaction_model.dart';
-import 'package:dodolanku/features/scanner/providers/scanner_provider.dart';
 
 final transactionRepositoryProvider = Provider<TransactionRepository>((ref) {
   return TransactionRepositoryImpl(ref.read(databaseServiceProvider));
@@ -19,12 +18,18 @@ abstract class TransactionRepository {
   Future<List<TransactionItemModel>> getTransactionItems(int transactionId);
   Future<Map<String, dynamic>> getDashboardStats();
   Future<List<Map<String, dynamic>>> getTopProducts({int limit = 5});
+  Future<void> deleteTransaction(int transactionId, {bool restoreStock = true});
 }
 
 class TransactionRepositoryImpl implements TransactionRepository {
   final DatabaseService _dbService;
 
   TransactionRepositoryImpl(this._dbService);
+
+  @override
+  Future<void> deleteTransaction(int transactionId, {bool restoreStock = true}) async {
+    await _dbService.deleteTransaction(transactionId, restoreStock: restoreStock);
+  }
 
   @override
   Future<int> insertTransaction({

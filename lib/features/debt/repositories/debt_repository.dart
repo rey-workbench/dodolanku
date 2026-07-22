@@ -1,7 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dodolanku/core/database_service.dart';
 import 'package:dodolanku/features/debt/models/debt_model.dart';
-import 'package:dodolanku/features/scanner/providers/scanner_provider.dart';
 
 final debtRepositoryProvider = Provider<DebtRepository>((ref) {
   return DebtRepositoryImpl(ref.read(databaseServiceProvider));

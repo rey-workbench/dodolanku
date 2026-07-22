@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:dodolanku/core/database_service.dart';
 import 'package:dodolanku/core/widgets/app_widgets.dart';
 import 'package:dodolanku/features/settings/providers/profile_provider.dart';
 import 'package:dodolanku/features/scanner/providers/scanner_provider.dart';
@@ -8,10 +9,12 @@ import 'package:dodolanku/features/debt/providers/debt_provider.dart';
 import 'package:dodolanku/features/orders/providers/orders_provider.dart';
 import 'package:dodolanku/core/services/gdrive_service.dart';
 import 'package:dodolanku/features/navigation/views/navigation_shell.dart';
+import 'package:dodolanku/features/scanner/repositories/product_repository.dart';
 import 'stock_opname_page.dart';
 import 'printer_settings_page.dart';
 import 'payment_method_page.dart';
 import 'receipt_config_page.dart';
+import 'product_list_page.dart';
 
 class SettingsPage extends ConsumerWidget {
   const SettingsPage({super.key});
@@ -160,6 +163,19 @@ class SettingsPage extends ConsumerWidget {
                 },
               ),
               AppSettingsTile(
+                icon: Icons.list_alt,
+                title: 'Katalog Semua Produk',
+                subtitle: 'Lihat daftar lengkap produk, ubah data & hapus',
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const ProductListPage(),
+                    ),
+                  );
+                },
+              ),
+              AppSettingsTile(
                 icon: Icons.payment_outlined,
                 title: 'Metode Pembayaran',
                 subtitle: 'Atur QRIS & metode pembayaran kasir',
@@ -180,7 +196,7 @@ class SettingsPage extends ConsumerWidget {
             title: 'Database & Sinkronisasi',
             tiles: [
               FutureBuilder<int>(
-                future: ref.read(databaseServiceProvider).getGlobalProductsCount(),
+                future: ref.read(productRepositoryProvider).getGlobalProductsCount(),
                 builder: (context, snapshot) {
                   final count = snapshot.data;
                   final text = (count == null)
@@ -203,6 +219,7 @@ class SettingsPage extends ConsumerWidget {
                   final dbService = ref.read(databaseServiceProvider);
                   await dbService.forceCheckpoint(); // Flush WAL ke .db sebelum backup
                   
+                  if (!context.mounted) return;
                   AppToast.show(context, message: 'Menghubungkan ke Google Drive...');
                   final error = await GDriveService.uploadBackup();
                   if (context.mounted) {
@@ -274,7 +291,7 @@ class SettingsPage extends ConsumerWidget {
                 onTap: () async {
                   AppToast.show(context, message: 'Menyinkronkan data katalog produk dari Turso...');
                   try {
-                    final newItems = await ref.read(databaseServiceProvider).syncMasterProductsFromTurso();
+                    final newItems = await ref.read(productRepositoryProvider).syncMasterProductsFromTurso();
                     if (context.mounted) {
                       if (newItems > 0) {
                         AppToast.show(context, message: 'Berhasil menyinkronkan $newItems produk!');

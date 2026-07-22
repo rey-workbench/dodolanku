@@ -1,8 +1,7 @@
 import 'package:dodolanku/core/widgets/app_widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:dodolanku/core/services/print_service.dart';
-import 'package:dodolanku/features/scanner/providers/scanner_provider.dart';
+import 'package:dodolanku/features/settings/repositories/settings_repository.dart';
 import 'package:dodolanku/features/settings/providers/profile_provider.dart';
 
 class ReceiptConfigPage extends ConsumerStatefulWidget {
@@ -29,14 +28,13 @@ class _ReceiptConfigPageState extends ConsumerState<ReceiptConfigPage> {
   }
 
   Future<void> _loadConfig() async {
-    final db = ref.read(databaseServiceProvider);
-    await db.initDb();
-    final config = await db.getReceiptConfig();
+    final settingsRepo = ref.read(settingsRepositoryProvider);
+    final config = await settingsRepo.getReceiptConfig();
     setState(() {
       _nameController.text = config['store_name'] ?? 'dodolanku';
       _addressController.text = config['store_address'] ?? 'Jl. Raya dodolanku No. 1';
       _phoneController.text = config['store_phone'] ?? '';
-      _selectedPaperSize = PrintService.instance.paperSize;
+      _selectedPaperSize = settingsRepo.getPaperSize();
       _headerController.text = config['header_msg'] ?? '';
       _footerController.text = config['footer_msg'] ?? 'Terima Kasih';
       _isLoading = false;
@@ -47,13 +45,13 @@ class _ReceiptConfigPageState extends ConsumerState<ReceiptConfigPage> {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isLoading = true);
-    final db = ref.read(databaseServiceProvider);
+    final settingsRepo = ref.read(settingsRepositoryProvider);
 
     try {
-      PrintService.instance.setPaperSize(_selectedPaperSize);
+      settingsRepo.setPaperSize(_selectedPaperSize);
 
-      final currentConfig = await db.getReceiptConfig();
-      await db.updateReceiptConfig(
+      final currentConfig = await settingsRepo.getReceiptConfig();
+      await settingsRepo.updateReceiptConfig(
         storeName: _nameController.text,
         storeAddress: _addressController.text,
         storePhone: _phoneController.text,

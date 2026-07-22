@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dodolanku/features/orders/providers/orders_provider.dart';
 import 'package:dodolanku/core/utils/currency_formatter.dart';
 import 'package:dodolanku/core/widgets/app_widgets.dart';
+import 'package:dodolanku/features/orders/repositories/transaction_repository.dart';
 
 class OrdersPage extends ConsumerWidget {
   const OrdersPage({super.key});
@@ -16,7 +17,11 @@ class OrdersPage extends ConsumerWidget {
     }
   }
 
-  void _showDetailDialog(BuildContext context, TransactionWithItems tx) {
+  void _showDetailDialog(
+    BuildContext context,
+    WidgetRef ref,
+    TransactionWithItems tx,
+  ) {
     showAppDetailModal(
       context: context,
       title: 'Detail Transaksi #${tx.transaction.id}',
@@ -38,40 +43,56 @@ class OrdersPage extends ConsumerWidget {
             Flexible(
               child: ListView(
                 shrinkWrap: true,
-                children: tx.items.map((item) => Padding(
-                  padding: const EdgeInsets.only(bottom: 8.0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                children: tx.items
+                    .map(
+                      (item) => Padding(
+                        padding: const EdgeInsets.only(bottom: 8.0),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text(
-                              item.productName,
-                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    item.productName,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                  Text(
+                                    '${item.qty} x Rp ${formatRupiah(item.price)}',
+                                    style: TextStyle(
+                                      color: Colors.grey[600],
+                                      fontSize: 11,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                             Text(
-                              '${item.qty} x Rp ${formatRupiah(item.price)}',
-                              style: TextStyle(color: Colors.grey[600], fontSize: 11),
+                              'Rp ${formatRupiah(item.subtotal)}',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                              ),
                             ),
                           ],
                         ),
                       ),
-                      Text(
-                        'Rp ${formatRupiah(item.subtotal)}',
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                      ),
-                    ],
-                  ),
-                )).toList(),
+                    )
+                    .toList(),
               ),
             ),
             const Divider(height: 20),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text('Total Belanja', style: TextStyle(fontWeight: FontWeight.bold)),
+                const Text(
+                  'Total Belanja',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
                 Text(
                   'Rp ${formatRupiah(tx.transaction.totalAmount)}',
                   style: TextStyle(
@@ -86,7 +107,10 @@ class OrdersPage extends ConsumerWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text('Bayar', style: TextStyle(color: Colors.grey, fontSize: 12)),
+                const Text(
+                  'Bayar',
+                  style: TextStyle(color: Colors.grey, fontSize: 12),
+                ),
                 Text(
                   'Rp ${formatRupiah(tx.transaction.amountPaid)}',
                   style: const TextStyle(fontSize: 12),
@@ -96,12 +120,108 @@ class OrdersPage extends ConsumerWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text('Kembalian', style: TextStyle(color: Colors.grey, fontSize: 12)),
+                const Text(
+                  'Kembalian',
+                  style: TextStyle(color: Colors.grey, fontSize: 12),
+                ),
                 Text(
                   'Rp ${formatRupiah(tx.transaction.changeAmount)}',
                   style: const TextStyle(fontSize: 12),
                 ),
               ],
+            ),
+            const SizedBox(height: 24),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: () {
+                  Navigator.pop(context); // Tutup dialog detail
+
+                  final itemListStr = tx.items
+                      .map(
+                        (i) =>
+                            '- Stok ${i.productName} dikembalikan ke persediaan sebanyak ${i.qty}',
+                      )
+                      .join('\n');
+
+                  showDialog(
+                    context: context,
+                    builder: (ctx) => AlertDialog(
+                      title: const Text(
+                        'Hapus Transaksi',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      content: Text(
+                        'Apakah Anda yakin ingin menghapus transaksi ini?\n\n$itemListStr\n\nPilih tindakan untuk stok barang:',
+                        style: const TextStyle(fontSize: 14),
+                      ),
+                      contentPadding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
+                      actionsPadding: const EdgeInsets.all(16),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(ctx),
+                          child: const Text('Batal'),
+                        ),
+                        TextButton(
+                          onPressed: () async {
+                            Navigator.pop(ctx);
+                            final txRepo = ref.read(transactionRepositoryProvider);
+                            await txRepo.deleteTransaction(
+                              tx.transaction.id!,
+                              restoreStock: false,
+                            );
+                            ref.invalidate(ordersProvider); // Refresh daftar
+                            if (context.mounted) {
+                              AppToast.show(
+                                context,
+                                message: 'Transaksi dihapus (Stok hangus)',
+                              );
+                            }
+                          },
+                          child: const Text(
+                            'Hapus TANPA Kembali Stok',
+                            style: TextStyle(color: Colors.red, fontSize: 13),
+                          ),
+                        ),
+                        ElevatedButton(
+                          onPressed: () async {
+                            Navigator.pop(ctx);
+                            final txRepo = ref.read(transactionRepositoryProvider);
+                            await txRepo.deleteTransaction(
+                              tx.transaction.id!,
+                              restoreStock: true,
+                            );
+                            ref.invalidate(ordersProvider); // Refresh daftar
+                            if (context.mounted) {
+                              AppToast.show(
+                                context,
+                                message:
+                                    'Transaksi dihapus (Stok dikembalikan)',
+                              );
+                            }
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Theme.of(
+                              context,
+                            ).colorScheme.primary,
+                            foregroundColor: Colors.white,
+                          ),
+                          child: const Text('Hapus & Kembalikan Stok'),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.delete_outline, size: 18),
+                label: const Text('Hapus Transaksi'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.red,
+                  side: const BorderSide(color: Colors.red),
+                ),
+              ),
             ),
           ],
         ),
@@ -115,12 +235,15 @@ class OrdersPage extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.surface,
-      appBar: AppBar(
-        title: const Text('Riwayat Transaksi'),
-      ),
+      appBar: AppBar(title: const Text('Riwayat Transaksi')),
       body: transactionsAsync.when(
         loading: () => ListView.separated(
-          padding: EdgeInsets.fromLTRB(16, 16, 16, MediaQuery.of(context).padding.bottom + 90),
+          padding: EdgeInsets.fromLTRB(
+            16,
+            16,
+            16,
+            MediaQuery.of(context).padding.bottom + 90,
+          ),
           itemCount: 5,
           separatorBuilder: (_, _) => const SizedBox(height: 10),
           itemBuilder: (context, index) {
@@ -155,19 +278,33 @@ class OrdersPage extends ConsumerWidget {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.history_rounded, size: 48, color: Colors.grey[300]),
+                  Icon(
+                    Icons.history_rounded,
+                    size: 48,
+                    color: Colors.grey[300],
+                  ),
                   const SizedBox(height: 12),
-                  Text('Belum ada riwayat transaksi', style: TextStyle(color: Colors.grey[500])),
+                  Text(
+                    'Belum ada riwayat transaksi',
+                    style: TextStyle(color: Colors.grey[500]),
+                  ),
                   const SizedBox(height: 4),
-                  Text('Semua transaksi kasir akan tercatat di sini',
-                      style: TextStyle(color: Colors.grey[400], fontSize: 12)),
+                  Text(
+                    'Semua transaksi kasir akan tercatat di sini',
+                    style: TextStyle(color: Colors.grey[400], fontSize: 12),
+                  ),
                 ],
               ),
             );
           }
 
           return ListView.separated(
-            padding: EdgeInsets.fromLTRB(16, 16, 16, MediaQuery.of(context).padding.bottom + 90),
+            padding: EdgeInsets.fromLTRB(
+              16,
+              16,
+              16,
+              MediaQuery.of(context).padding.bottom + 90,
+            ),
             itemCount: list.length,
             separatorBuilder: (_, _) => const SizedBox(height: 10),
             itemBuilder: (context, index) {
@@ -179,7 +316,7 @@ class OrdersPage extends ConsumerWidget {
 
               return RepaintBoundary(
                 child: AppCard(
-                  onTap: () => _showDetailDialog(context, tx),
+                  onTap: () => _showDetailDialog(context, ref, tx),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -191,19 +328,27 @@ class OrdersPage extends ConsumerWidget {
                               children: [
                                 Text(
                                   'Transaksi #${tx.transaction.id}',
-                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 15,
+                                  ),
                                 ),
                                 const SizedBox(width: 8),
-                                  AppStatusBadge(
-                                    label: method,
-                                    color: method == 'TUNAI' ? Colors.green : const Color(0xFF0F172A),
-                                  ),
+                                AppStatusBadge(
+                                  label: method,
+                                  color: method == 'TUNAI'
+                                      ? Colors.green
+                                      : const Color(0xFF0F172A),
+                                ),
                               ],
                             ),
                             const SizedBox(height: 6),
                             Text(
-                               '$count Item • $dateStr',
-                              style: TextStyle(color: Colors.grey[600], fontSize: 13),
+                              '$count Item • $dateStr',
+                              style: TextStyle(
+                                color: Colors.grey[600],
+                                fontSize: 13,
+                              ),
                             ),
                           ],
                         ),

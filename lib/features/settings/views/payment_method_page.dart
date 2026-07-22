@@ -1,7 +1,7 @@
 import 'package:dodolanku/core/widgets/app_widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:dodolanku/features/scanner/providers/scanner_provider.dart';
+import 'package:dodolanku/features/settings/repositories/settings_repository.dart';
 import 'package:dodolanku/features/settings/providers/profile_provider.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
@@ -34,9 +34,8 @@ class _PaymentMethodPageState extends ConsumerState<PaymentMethodPage> {
 
   Future<void> _loadQris() async {
     try {
-      final db = ref.read(databaseServiceProvider);
-      await db.initDb();
-      final config = await db.getReceiptConfig();
+      final settingsRepo = ref.read(settingsRepositoryProvider);
+      final config = await settingsRepo.getReceiptConfig();
       final qris = config['qris_data'] ?? '';
       String merchantName = '';
       if (qris.isNotEmpty) {
@@ -62,10 +61,10 @@ class _PaymentMethodPageState extends ConsumerState<PaymentMethodPage> {
 
   Future<void> _saveQris() async {
     setState(() => _isSaving = true);
-    final db = ref.read(databaseServiceProvider);
+    final settingsRepo = ref.read(settingsRepositoryProvider);
     try {
-      final config = await db.getReceiptConfig();
-      await db.updateReceiptConfig(
+      final config = await settingsRepo.getReceiptConfig();
+      await settingsRepo.updateReceiptConfig(
         storeName: config['store_name'] ?? '',
         storeAddress: config['store_address'] ?? '',
         storePhone: config['store_phone'] ?? '',

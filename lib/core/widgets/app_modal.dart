@@ -11,6 +11,8 @@ class AppFormField {
   final String? Function(String?)? validator;
   final List<TextInputFormatter>? inputFormatters;
 
+  final String? prefixText;
+
   const AppFormField({
     required this.controller,
     required this.label,
@@ -18,6 +20,7 @@ class AppFormField {
     this.keyboardType = TextInputType.text,
     this.validator,
     this.inputFormatters,
+    this.prefixText,
   });
 }
 
@@ -152,6 +155,7 @@ class _AppFormBottomSheetState extends State<_AppFormBottomSheet> {
                               style: const TextStyle(fontSize: 14),
                               decoration: InputDecoration(
                                 hintText: f.hint,
+                                prefixText: f.prefixText,
                                 filled: true,
                                 fillColor: Colors.grey[50],
                                 contentPadding: const EdgeInsets.symmetric(
@@ -458,7 +462,10 @@ Future<void> showProductFormModal({
   String? title,
   String? subtitle,
 }) async {
-  final barcodeController = TextEditingController(text: initialBarcode);
+  final isNobc = initialBarcode.startsWith('NOBC-');
+  final initialBarcodeRaw = isNobc ? initialBarcode.substring(5) : initialBarcode;
+
+  final barcodeController = TextEditingController(text: initialBarcodeRaw);
   final nameController = TextEditingController(text: initialName ?? '');
   final priceController = TextEditingController(
     text: (initialPrice != null && initialPrice > 0)
@@ -488,6 +495,7 @@ Future<void> showProductFormModal({
         controller: barcodeController,
         label: 'Barcode / Kode Produk',
         keyboardType: TextInputType.text,
+        prefixText: isNobc ? 'NOBC-' : null,
         validator: (val) => val == null || val.trim().isEmpty
             ? 'Kode tidak boleh kosong'
             : null,
@@ -527,7 +535,8 @@ Future<void> showProductFormModal({
       ),
     ],
     onConfirm: () async {
-      final code = barcodeController.text.trim();
+      final codeRaw = barcodeController.text.trim();
+      final code = isNobc ? 'NOBC-$codeRaw' : codeRaw;
       final name = nameController.text.trim();
       final price = double.parse(priceController.text.replaceAll('.', ''));
       final stock = int.parse(stockController.text);

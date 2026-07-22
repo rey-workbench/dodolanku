@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:dodolanku/features/settings/repositories/settings_repository.dart';
 import 'package:dodolanku/features/scanner/providers/scanner_provider.dart';
 import 'package:dodolanku/core/utils/currency_formatter.dart';
 import 'package:dodolanku/core/widgets/app_widgets.dart';
@@ -199,8 +200,8 @@ class _ScannerPageState extends ConsumerState<ScannerPage> {
           Navigator.pop(ctx);
 
           if (selectedMethod == 'qris') {
-            final db = ref.read(databaseServiceProvider);
-            final config = await db.getReceiptConfig();
+            final settingsRepo = ref.read(settingsRepositoryProvider);
+            final config = await settingsRepo.getReceiptConfig();
             final qrisData = config['qris_data'] ?? '';
             if (qrisData.isEmpty) {
               if (context.mounted) {

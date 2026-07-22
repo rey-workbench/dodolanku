@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:dodolanku/core/database_service.dart';
 import 'package:dodolanku/features/debt/models/debt_model.dart';
 import 'package:dodolanku/features/debt/repositories/debt_repository.dart';
-import 'package:dodolanku/features/scanner/providers/scanner_provider.dart';
 
 class DebtNotifier extends AsyncNotifier<List<DebtNote>> {
   @override

@@ -5,13 +5,16 @@ import 'core/theme.dart';
 import 'features/navigation/views/navigation_shell.dart';
 import 'core/services/gdrive_service.dart';
 
+/// Provider untuk menjembatani backup otomatis secara silent
+final autoBackupProvider = Provider<VoidCallback>((ref) {
+  return () => GDriveService.uploadBackupSilently();
+});
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   try {
     await dotenv.load(fileName: ".env");
-  } catch (_) {
-    // If .env file fails to load, fallback gracefully
-  }
+  } catch (_) {}
 
   runApp(
     const ProviderScope(
@@ -20,20 +23,20 @@ void main() async {
   );
 }
 
-class MyApp extends StatefulWidget {
+class MyApp extends ConsumerStatefulWidget {
   const MyApp({super.key});
 
   @override
-  State<MyApp> createState() => _MyAppState();
+  ConsumerState<MyApp> createState() => _MyAppState();
 }
 
-class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
+class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    // Jalankan auto backup saat aplikasi pertama kali dibuka
-    _runAutoBackup();
+    // Jalankan auto backup pertama kali dibuka
+    _triggerBackup();
   }
 
   @override
@@ -45,14 +48,12 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.paused) {
-      // Jalankan auto backup saat aplikasi diminimize (di-background-kan)
-      _runAutoBackup();
+      _triggerBackup();
     }
   }
 
-  void _runAutoBackup() {
-    // Berjalan secara silent tanpa mengganggu UI
-    GDriveService.uploadBackupSilently();
+  void _triggerBackup() {
+    ref.read(autoBackupProvider)();
   }
 
   @override

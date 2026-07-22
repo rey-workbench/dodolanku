@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:dodolanku/features/scanner/providers/scanner_provider.dart';
+import 'package:dodolanku/features/settings/repositories/settings_repository.dart';
 
 @immutable
 class ProfileState {
@@ -40,9 +40,8 @@ class ProfileNotifier extends Notifier<ProfileState> {
 
   Future<void> loadProfile() async {
     state = state.copyWith(isLoading: true);
-    final db = ref.read(databaseServiceProvider);
-    await db.initDb();
-    final config = await db.getReceiptConfig();
+    final settingsRepo = ref.read(settingsRepositoryProvider);
+    final config = await settingsRepo.getReceiptConfig();
     state = ProfileState(
       storeName: config['store_name'] ?? 'dodolanku',
       storeAddress: config['store_address'] ?? 'Jl. Raya dodolanku No. 1',
@@ -55,10 +54,10 @@ class ProfileNotifier extends Notifier<ProfileState> {
     required String address,
   }) async {
     state = state.copyWith(isLoading: true);
-    final db = ref.read(databaseServiceProvider);
-    final config = await db.getReceiptConfig();
+    final settingsRepo = ref.read(settingsRepositoryProvider);
+    final config = await settingsRepo.getReceiptConfig();
 
-    await db.updateReceiptConfig(
+    await settingsRepo.updateReceiptConfig(
       storeName: name,
       storeAddress: address,
       storePhone: config['store_phone'],

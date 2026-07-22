@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:dodolanku/features/scanner/providers/scanner_provider.dart';
+import 'package:dodolanku/features/scanner/repositories/product_repository.dart';
+import 'package:dodolanku/core/models/product_model.dart';
+
 import 'package:dodolanku/features/dashboard/providers/dashboard_provider.dart';
 import 'package:dodolanku/core/utils/currency_formatter.dart';
 import 'package:dodolanku/core/widgets/app_widgets.dart';
@@ -24,8 +26,8 @@ class _StockOpnamePageState extends ConsumerState<StockOpnamePage> {
   }
 
   void _addNewNonBarcode() async {
-    final db = ref.read(databaseServiceProvider);
-    final autoCode = await db.getNextNonBarcodeCode();
+    final productRepo = ref.read(productRepositoryProvider);
+    final autoCode = await productRepo.getNextNonBarcodeCode();
     _processBarcode(autoCode);
   }
 
@@ -40,24 +42,24 @@ class _StockOpnamePageState extends ConsumerState<StockOpnamePage> {
   void _processBarcode(String barcode) async {
     setState(() => _isScanning = false);
 
-    final db = ref.read(databaseServiceProvider);
-    final product = await db.getProductDetails(barcode);
+    final productRepo = ref.read(productRepositoryProvider);
+    final product = await productRepo.getProductDetails(barcode);
 
     if (!mounted) return;
 
     await showProductFormModal(
       context: context,
       initialBarcode: barcode,
-      initialName: product?['name'] as String?,
-      initialPrice: product != null ? (product['price'] as num).toDouble() : null,
-      initialStock: product != null ? (product['stock'] as num).toInt() : null,
+      initialName: product?.name,
+      initialPrice: product?.price,
+      initialStock: product?.stock,
       onSave: ({
         required String barcode,
         required String name,
         required double price,
         required int stock,
       }) async {
-        await db.insertProduct(barcode, name, price, stock);
+        await productRepo.insertProduct(Product(barcode: barcode, name: name, price: price, stock: stock));
         ref.invalidate(dashboardProvider);
 
         setState(() {

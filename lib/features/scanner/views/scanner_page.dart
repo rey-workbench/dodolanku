@@ -773,6 +773,32 @@ class _PaymentBottomSheetState extends State<_PaymentBottomSheet> {
     super.dispose();
   }
 
+  List<double> _getQuickCashOptions() {
+    final total = widget.total;
+    final List<double> candidates = [total];
+
+    final standardBills = [2000, 5000, 10000, 20000, 50000, 100000];
+    for (var bill in standardBills) {
+      if (bill > total) {
+        candidates.add(bill.toDouble());
+      }
+    }
+
+    if (total > 100000) {
+      double next50k = ((total / 50000).ceil() * 50000).toDouble();
+      if (next50k > total && !candidates.contains(next50k)) {
+        candidates.add(next50k);
+      }
+      double next100k = ((total / 100000).ceil() * 100000).toDouble();
+      if (next100k > total && !candidates.contains(next100k)) {
+        candidates.add(next100k);
+      }
+    }
+
+    candidates.sort();
+    return candidates.take(4).toList();
+  }
+
   @override
   Widget build(BuildContext context) {
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
@@ -960,6 +986,50 @@ class _PaymentBottomSheetState extends State<_PaymentBottomSheet> {
                   final paid = double.tryParse(clean) ?? 0;
                   setState(() => _change = paid - widget.total);
                 },
+              ),
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: _getQuickCashOptions().map((option) {
+                  final clean = _amountController.text.replaceAll('.', '').trim();
+                  final paid = double.tryParse(clean) ?? 0;
+                  final isSelected = paid == option;
+                  final isUangPas = option == widget.total;
+
+                  return InkWell(
+                    onTap: () {
+                      final formatted = formatRupiah(option);
+                      _amountController.value = TextEditingValue(
+                        text: formatted,
+                        selection: TextSelection.collapsed(offset: formatted.length),
+                      );
+                      setState(() {
+                        _change = option - widget.total;
+                      });
+                    },
+                    borderRadius: BorderRadius.circular(8),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: isSelected ? primary : Colors.grey[50],
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: isSelected ? primary : Colors.grey.shade300,
+                          width: 1,
+                        ),
+                      ),
+                      child: Text(
+                        isUangPas ? 'Uang Pas' : 'Rp ${formatRupiah(option)}',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: isSelected ? Colors.white : Colors.black87,
+                        ),
+                      ),
+                    ),
+                  );
+                }).toList(),
               ),
               if (_change >= 0) ...[
                 const SizedBox(height: 12),

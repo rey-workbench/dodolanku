@@ -49,6 +49,54 @@ class GDriveService {
     await _googleSignIn.signOut();
   }
 
+  /// Auto-backup silent yang hanya berjalan jika pengguna sudah pernah login sebelumnya
+  static Future<void> uploadBackupSilently() async {
+    try {
+      // Gunakan silent login, JANGAN memunculkan popup (jangan panggil signIn())
+      final account = await _googleSignIn.signInSilently();
+      if (account == null) return; // Belum pernah login, abaikan backup otomatis
+
+      final authHeaders = await account.authHeaders;
+      final client = GoogleAuthClient(authHeaders);
+      try {
+        final driveApi = drive.DriveApi(client);
+
+        final dbPath = await getDatabasesPath();
+        final file = File(join(dbPath, DatabaseConfig.localDbName));
+        if (!await file.exists()) return;
+
+        // Cari file backup lama
+        final fileList = await driveApi.files.list(
+          spaces: 'appDataFolder',
+          q: "name = 'dodolanku.db'",
+        );
+
+        final media = drive.Media(file.openRead(), file.lengthSync());
+
+        if (fileList.files != null && fileList.files!.isNotEmpty) {
+          final fileId = fileList.files!.first.id!;
+          await driveApi.files.update(
+            drive.File(),
+            fileId,
+            uploadMedia: media,
+          );
+        } else {
+          final driveFile = drive.File()
+            ..name = 'dodolanku.db'
+            ..parents = ['appDataFolder'];
+          await driveApi.files.create(
+            driveFile,
+            uploadMedia: media,
+          );
+        }
+      } finally {
+        client.close();
+      }
+    } catch (e) {
+      debugPrint('GDrive Auto Backup Error: $e');
+    }
+  }
+
   /// Upload database SQLite lokal ke folder tersembunyi Google Drive (appDataFolder)
   static Future<String?> uploadBackup() async {
     try {

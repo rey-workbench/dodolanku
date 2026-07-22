@@ -32,8 +32,17 @@ android {
 
     buildTypes {
         release {
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            if (System.getenv("CI") == "true" && System.getenv("KEYSTORE_PATH") != null) {
+                signingConfig = signingConfigs.create("release") {
+                    storeFile = file(System.getenv("KEYSTORE_PATH")!!)
+                    storePassword = System.getenv("STORE_PASSWORD")
+                    keyAlias = System.getenv("KEY_ALIAS")
+                    keyPassword = System.getenv("KEY_PASSWORD")
+                }
+            } else {
+                // Fallback to debug keys for local testing
+                signingConfig = signingConfigs.getByName("debug")
+            }
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(

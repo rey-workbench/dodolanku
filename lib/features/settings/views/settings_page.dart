@@ -7,6 +7,7 @@ import 'package:dodolanku/features/dashboard/providers/dashboard_provider.dart';
 import 'package:dodolanku/features/debt/providers/debt_provider.dart';
 import 'package:dodolanku/features/orders/providers/orders_provider.dart';
 import 'package:dodolanku/core/services/gdrive_service.dart';
+import 'package:dodolanku/features/navigation/views/navigation_shell.dart';
 import 'stock_opname_page.dart';
 import 'printer_settings_page.dart';
 import 'payment_method_page.dart';
@@ -227,15 +228,27 @@ class SettingsPage extends ConsumerWidget {
                       AppToast.show(context, message: 'Mengunduh backup dari Google Drive...');
                       
                       final dbService = ref.read(databaseServiceProvider);
-                      dbService.dispose(); // 1. TUTUP DB DULU AGAR TIDAK MENGUNCI FILE
                       
-                      final success = await GDriveService.restoreBackup();
+                      final success = await GDriveService.restoreBackup(
+                        onBeforeOverwrite: () async {
+                          // 1. TUTUP DB DULU, dilakukan SAAT file sudah terunduh
+                          // agar proses download yang lama tidak menyebabkan 'database closed'
+                          dbService.dispose(); 
+                        }
+                      );
                       
                       await dbService.initDb(); // 2. BUKA LAGI SETELAH DITIMPA
                       
                       if (context.mounted) {
                         if (success) {
-                          // Muat ulang (Refresh) semua data di aplikasi tanpa harus keluar
+                          // Hapus semua state sebelumnya dengan memaksa UI kembali ke halaman awal
+                          Navigator.pushAndRemoveUntil(
+                            context,
+                            MaterialPageRoute(builder: (_) => const NavigationShell()),
+                            (route) => false,
+                          );
+
+                          // Muat ulang (Refresh) provider yang mungkin tidak ikut mati
                           ref.invalidate(scannerProvider);
                           ref.invalidate(profileProvider);
                           ref.invalidate(dashboardProvider);

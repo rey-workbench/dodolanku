@@ -152,7 +152,7 @@ class GDriveService {
 
   /// Download & pulihkan database SQLite dari Google Drive ke HP.
   /// Returns true jika berhasil. Caller WAJIB reinit DatabaseService setelah ini.
-  static Future<bool> restoreBackup() async {
+  static Future<bool> restoreBackup({Future<void> Function()? onBeforeOverwrite}) async {
     try {
       var account = await currentUser();
       account ??= await signIn();
@@ -187,6 +187,11 @@ class GDriveService {
         // Tulis ke file temp dulu
         final tmpFile = File('${localFile.path}.tmp');
         await tmpFile.writeAsBytes(dataBytes, flush: true);
+        
+        // Callback sebelum kita benar-benar menimpa file aslinya
+        if (onBeforeOverwrite != null) {
+          await onBeforeOverwrite();
+        }
         
         // Hapus file lama dan file WAL/SHM jika ada
         if (await localFile.exists()) await localFile.delete();

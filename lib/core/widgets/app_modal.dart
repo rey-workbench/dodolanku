@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:dodolanku/core/utils/currency_formatter.dart';
 
 /// Definisi satu field input untuk [showAppFormModal].
 class AppFormField {
@@ -437,5 +438,106 @@ Future<void> showAppDetailModal({
         ],
       ),
     ),
+  );
+}
+
+/// Dialog/Modal khusus untuk Tambah/Edit Produk
+/// yang digunakan bersama oleh ScannerPage & StockOpnamePage agar tidak terduplikasi (DRY).
+Future<void> showProductFormModal({
+  required BuildContext context,
+  required String initialBarcode,
+  String? initialName,
+  double? initialPrice,
+  int? initialStock,
+  required Future<void> Function({
+    required String barcode,
+    required String name,
+    required double price,
+    required int stock,
+  }) onSave,
+  String? title,
+  String? subtitle,
+}) async {
+  final barcodeController = TextEditingController(text: initialBarcode);
+  final nameController = TextEditingController(text: initialName ?? '');
+  final priceController = TextEditingController(
+    text: (initialPrice != null && initialPrice > 0)
+        ? initialPrice.toStringAsFixed(0)
+        : '',
+  );
+  final stockController = TextEditingController(
+    text: (initialStock != null && initialStock > 0)
+        ? initialStock.toString()
+        : '',
+  );
+  final formKey = GlobalKey<FormState>();
+
+  final isEdit = initialName != null && initialName.isNotEmpty;
+
+  await showAppFormModal(
+    context: context,
+    title: title ?? (isEdit ? 'Update Stok & Harga' : 'Detail Produk'),
+    subtitle: subtitle ??
+        (isEdit
+            ? 'Barcode terdaftar. Edit detail barang di bawah.'
+            : 'Masukkan detail barang untuk didaftarkan.'),
+    formKey: formKey,
+    confirmLabel: 'Simpan Barang',
+    fields: [
+      AppFormField(
+        controller: barcodeController,
+        label: 'Barcode / Kode Produk',
+        keyboardType: TextInputType.text,
+        validator: (val) => val == null || val.trim().isEmpty
+            ? 'Kode tidak boleh kosong'
+            : null,
+      ),
+      AppFormField(
+        controller: nameController,
+        label: 'Nama Produk',
+        hint: 'Contoh: Gula Kiloan 1kg, Indomie Goreng',
+        validator: (val) => val == null || val.trim().isEmpty
+            ? 'Nama tidak boleh kosong'
+            : null,
+      ),
+      AppFormField(
+        controller: priceController,
+        label: 'Harga Jual (Rp)',
+        hint: 'Contoh: 15.000',
+        keyboardType: TextInputType.number,
+        inputFormatters: [CurrencyInputFormatter()],
+        validator: (val) {
+          if (val == null || val.trim().isEmpty) return 'Harga tidak boleh kosong';
+          if (double.tryParse(val.replaceAll('.', '')) == null) {
+            return 'Harga harus berupa angka';
+          }
+          return null;
+        },
+      ),
+      AppFormField(
+        controller: stockController,
+        label: 'Jumlah Stok Saat Ini',
+        hint: 'Contoh: 50',
+        keyboardType: TextInputType.number,
+        validator: (val) {
+          if (val == null || val.trim().isEmpty) return 'Stok tidak boleh kosong';
+          if (int.tryParse(val) == null) return 'Stok harus berupa angka bulat';
+          return null;
+        },
+      ),
+    ],
+    onConfirm: () async {
+      final code = barcodeController.text.trim();
+      final name = nameController.text.trim();
+      final price = double.parse(priceController.text.replaceAll('.', ''));
+      final stock = int.parse(stockController.text);
+
+      await onSave(
+        barcode: code,
+        name: name,
+        price: price,
+        stock: stock,
+      );
+    },
   );
 }

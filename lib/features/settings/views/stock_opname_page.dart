@@ -23,6 +23,12 @@ class _StockOpnamePageState extends ConsumerState<StockOpnamePage> {
     super.dispose();
   }
 
+  void _addNewNonBarcode() async {
+    final db = ref.read(databaseServiceProvider);
+    final autoCode = await db.getNextNonBarcodeCode();
+    _processBarcode(autoCode);
+  }
+
   void _submitManual() async {
     final barcode = _manualController.text.trim();
     if (barcode.isEmpty) return;
@@ -37,75 +43,26 @@ class _StockOpnamePageState extends ConsumerState<StockOpnamePage> {
     final db = ref.read(databaseServiceProvider);
     final product = await db.getProductDetails(barcode);
 
-    final nameController = TextEditingController(text: product?['name'] as String? ?? '');
-    final barcodeController = TextEditingController(text: barcode);
-    final priceController = TextEditingController(
-      text: product != null ? (product['price'] as num).toStringAsFixed(0) : '',
-    );
-    final stockController = TextEditingController(
-      text: product != null ? (product['stock'] as num).toString() : '',
-    );
-    final formKey = GlobalKey<FormState>();
-
     if (!mounted) return;
 
-    showAppFormModal(
+    await showProductFormModal(
       context: context,
-      title: product != null ? 'Update Stok & Harga' : 'Tambah Produk Baru',
-      subtitle: product != null
-          ? 'Barcode terdaftar. Edit detail barang di bawah.'
-          : 'Barcode belum terdaftar. Isi detail barang baru.',
-      formKey: formKey,
-      fields: [
-        AppFormField(
-          controller: barcodeController,
-          label: 'Barcode (Bisa diedit/sesuaikan)',
-          keyboardType: TextInputType.number,
-          validator: (val) => val == null || val.trim().isEmpty ? 'Barcode tidak boleh kosong' : null,
-        ),
-        AppFormField(
-          controller: nameController,
-          label: 'Nama Produk',
-          hint: 'Contoh: Indomie Goreng Spesial',
-          validator: (val) => val == null || val.trim().isEmpty ? 'Nama tidak boleh kosong' : null,
-        ),
-        AppFormField(
-          controller: priceController,
-          label: 'Harga Jual (Rp)',
-          hint: 'Contoh: 3.100',
-          keyboardType: TextInputType.number,
-          inputFormatters: [CurrencyInputFormatter()],
-          validator: (val) {
-            if (val == null || val.trim().isEmpty) return 'Harga tidak boleh kosong';
-            if (double.tryParse(val.replaceAll('.', '')) == null) return 'Harga harus berupa angka';
-            return null;
-          },
-        ),
-        AppFormField(
-          controller: stockController,
-          label: 'Jumlah Stok Saat Ini',
-          hint: 'Contoh: 120',
-          keyboardType: TextInputType.number,
-          validator: (val) {
-            if (val == null || val.trim().isEmpty) return 'Stok tidak boleh kosong';
-            if (int.tryParse(val) == null) return 'Stok harus berupa angka bulat';
-            return null;
-          },
-        ),
-      ],
-      confirmLabel: 'Simpan Barang',
-      onConfirm: () async {
-        final finalBarcode = barcodeController.text.trim();
-        final name = nameController.text.trim();
-        final price = double.parse(priceController.text.replaceAll('.', ''));
-        final stock = int.parse(stockController.text);
-
-        await db.insertProduct(finalBarcode, name, price, stock);
+      initialBarcode: barcode,
+      initialName: product?['name'] as String?,
+      initialPrice: product != null ? (product['price'] as num).toDouble() : null,
+      initialStock: product != null ? (product['stock'] as num).toInt() : null,
+      onSave: ({
+        required String barcode,
+        required String name,
+        required double price,
+        required int stock,
+      }) async {
+        await db.insertProduct(barcode, name, price, stock);
         ref.invalidate(dashboardProvider);
 
         setState(() {
           _sessionHistory.insert(0, {
-            'barcode': finalBarcode,
+            'barcode': barcode,
             'name': name,
             'price': price,
             'stock': stock,
@@ -115,14 +72,18 @@ class _StockOpnamePageState extends ConsumerState<StockOpnamePage> {
         });
 
         if (mounted) {
-          AppToast.show(context, message: 'Berhasil menyimpan: $name (Stok: $stock)', bottomMargin: 24);
+          AppToast.show(
+            context,
+            message: 'Berhasil menyimpan: $name (Stok: $stock)',
+            bottomMargin: 24,
+          );
         }
       },
-    ).then((_) {
-      if (mounted) {
-        setState(() => _isScanning = true);
-      }
-    });
+    );
+
+    if (mounted) {
+      setState(() => _isScanning = true);
+    }
   }
 
 
@@ -148,7 +109,7 @@ class _StockOpnamePageState extends ConsumerState<StockOpnamePage> {
               },
             ),
 
-            // Manual Barcode Input
+            // Manual Barcode Input & Add Non-Barcode
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
               child: Row(
@@ -168,17 +129,35 @@ class _StockOpnamePageState extends ConsumerState<StockOpnamePage> {
                           borderSide: BorderSide.none,
                         ),
                       ),
-                      keyboardType: TextInputType.number,
+                      keyboardType: TextInputType.text,
                       onSubmitted: (_) => _submitManual(),
                     ),
                   ),
-                  const SizedBox(width: 10),
+                  const SizedBox(width: 8),
                   FloatingActionButton.small(
                     onPressed: _submitManual,
                     elevation: 0,
                     backgroundColor: Theme.of(context).colorScheme.primary,
                     foregroundColor: Colors.white,
+                    tooltip: 'Cari/Scan Kode',
                     child: const Icon(Icons.send_rounded),
+                  ),
+                  const SizedBox(width: 6),
+                  Material(
+                    color: Theme.of(context).colorScheme.secondaryContainer,
+                    borderRadius: BorderRadius.circular(12),
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(12),
+                      onTap: _addNewNonBarcode,
+                      child: Container(
+                        padding: const EdgeInsets.all(10),
+                        child: Icon(
+                          Icons.add_box_rounded,
+                          color: Theme.of(context).colorScheme.onSecondaryContainer,
+                          size: 22,
+                        ),
+                      ),
+                    ),
                   ),
                 ],
               ),

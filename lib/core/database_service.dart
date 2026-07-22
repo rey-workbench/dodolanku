@@ -252,26 +252,6 @@ class DatabaseService {
     _pushSingleProductToTurso(cleanBc, cleanName);
   }
 
-  /// Kurangi stok setelah transaksi berhasil.
-  Future<void> decreaseStock(String barcode, int qty) async {
-    if (_db == null) return;
-    await _db!.rawUpdate(
-      'UPDATE products SET stock = MAX(0, stock - ?) WHERE barcode = ?',
-      [qty, barcode.trim()],
-    );
-  }
-
-  /// Update / set stok produk secara manual (Stock Opname).
-  Future<void> updateStock(String barcode, int newStock) async {
-    if (_db == null) throw Exception('Database belum siap');
-    await _db!.update(
-      'products',
-      {'stock': newStock},
-      where: 'barcode = ?',
-      whereArgs: [barcode.trim()],
-    );
-  }
-
   /// Update harga dan/atau stok produk yang sudah terdaftar.
   Future<void> updatePriceAndStock(
     String barcode, {
@@ -314,6 +294,29 @@ class DatabaseService {
       return Sqflite.firstIntValue(result) ?? 0;
     } catch (_) {
       return 0;
+    }
+  }
+
+  /// Generate kode otomatis untuk produk tanpa barcode (misal NOBC-0001, NOBC-0002).
+  Future<String> getNextNonBarcodeCode() async {
+    await initDb();
+    if (_db == null) return 'NOBC-0001';
+    try {
+      final result = await _db!.rawQuery(
+        "SELECT barcode FROM products WHERE barcode LIKE 'NOBC-%' ORDER BY LENGTH(barcode) DESC, barcode DESC LIMIT 1",
+      );
+      if (result.isNotEmpty) {
+        final lastBarcode = result.first['barcode'] as String? ?? '';
+        final parts = lastBarcode.split('-');
+        if (parts.length == 2) {
+          final lastNum = int.tryParse(parts[1]) ?? 0;
+          final nextNum = lastNum + 1;
+          return 'NOBC-${nextNum.toString().padLeft(4, '0')}';
+        }
+      }
+      return 'NOBC-0001';
+    } catch (_) {
+      return 'NOBC-0001';
     }
   }
 

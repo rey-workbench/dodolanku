@@ -47,67 +47,57 @@ class _ScannerPageState extends ConsumerState<ScannerPage> {
   }
 
   void _showRegistrationDialog(String barcode) {
-    final nameController = TextEditingController();
-    final priceController = TextEditingController();
-    final stockController = TextEditingController();
-    final formKey = GlobalKey<FormState>();
-
-    showAppFormModal(
+    showProductFormModal(
       context: context,
+      initialBarcode: barcode,
       title: 'Produk Baru Terdeteksi',
       subtitle: 'Barcode: $barcode',
-      formKey: formKey,
-      fields: [
-        AppFormField(
-          controller: nameController,
-          label: 'Nama Produk',
-          hint: 'Masukkan nama produk...',
-          validator: (val) => val == null || val.trim().isEmpty
-              ? 'Nama tidak boleh kosong'
-              : null,
-        ),
-        AppFormField(
-          controller: priceController,
-          label: 'Harga Jual (Rp)',
-          hint: 'Contoh: 15.000',
-          keyboardType: TextInputType.number,
-          inputFormatters: [CurrencyInputFormatter()],
-          validator: (val) {
-            if (val == null || val.trim().isEmpty) {
-              return 'Harga tidak boleh kosong';
-            }
-            if (double.tryParse(val.replaceAll('.', '')) == null) return 'Harga harus berupa angka';
-            return null;
-          },
-        ),
-        AppFormField(
-          controller: stockController,
-          label: 'Jumlah Stok Saat Ini',
-          hint: 'Contoh: 50',
-          keyboardType: TextInputType.number,
-          validator: (val) {
-            if (val == null || val.trim().isEmpty) {
-              return 'Stok tidak boleh kosong';
-            }
-            if (int.tryParse(val) == null) {
-              return 'Stok harus berupa angka bulat';
-            }
-            return null;
-          },
-        ),
-      ],
-      onConfirm: () async {
-        final name = nameController.text.trim();
-        final price = double.parse(priceController.text.replaceAll('.', ''));
-        final stock = int.parse(stockController.text);
-        await ref
-            .read(scannerProvider.notifier)
-            .addProduct(
+      onSave: ({
+        required String barcode,
+        required String name,
+        required double price,
+        required int stock,
+      }) async {
+        await ref.read(scannerProvider.notifier).addProduct(
               barcode: barcode,
               name: name,
               price: price,
               stock: stock,
             );
+      },
+    );
+  }
+
+  void _showAddNonBarcodeDialog() async {
+    final autoCode = await ref
+        .read(scannerProvider.notifier)
+        .generateNonBarcodeCode();
+
+    if (!mounted) return;
+
+    showProductFormModal(
+      context: context,
+      initialBarcode: autoCode,
+      title: 'Tambah Produk (Tanpa Barcode)',
+      subtitle: 'Kode otomatis: $autoCode',
+      onSave: ({
+        required String barcode,
+        required String name,
+        required double price,
+        required int stock,
+      }) async {
+        await ref.read(scannerProvider.notifier).addProduct(
+              barcode: barcode,
+              name: name,
+              price: price,
+              stock: stock,
+            );
+        if (mounted) {
+          AppToast.show(
+            context,
+            message: 'Produk $name berhasil ditambahkan & masuk keranjang',
+          );
+        }
       },
     );
   }
@@ -216,12 +206,19 @@ class _ScannerPageState extends ConsumerState<ScannerPage> {
               if (context.mounted) {
                 AppToast.show(
                   context,
-                  message: 'QRIS belum dikonfigurasi. Atur QRIS di Pengaturan terlebih dahulu.',
+                  message:
+                      'QRIS belum dikonfigurasi. Atur QRIS di Pengaturan terlebih dahulu.',
                   isError: true,
                   bottomMargin: 24,
                 );
               }
-              return CheckoutResult(total: 0, amountPaid: 0, change: 0, paymentMethod: 'qris', items: []);
+              return CheckoutResult(
+                total: 0,
+                amountPaid: 0,
+                change: 0,
+                paymentMethod: 'qris',
+                items: [],
+              );
             }
 
             final dynamicQris = QrisGenerator.makeDynamic(
@@ -229,7 +226,15 @@ class _ScannerPageState extends ConsumerState<ScannerPage> {
               amount: total,
             );
 
-            if (!context.mounted) return CheckoutResult(total: 0, amountPaid: 0, change: 0, paymentMethod: 'qris', items: []);
+            if (!context.mounted) {
+              return CheckoutResult(
+                total: 0,
+                amountPaid: 0,
+                change: 0,
+                paymentMethod: 'qris',
+                items: [],
+              );
+            }
 
             final proceed = await showModalBottomSheet<bool>(
               context: context,
@@ -242,7 +247,10 @@ class _ScannerPageState extends ConsumerState<ScannerPage> {
                   left: 20,
                   right: 20,
                   top: 20,
-                  bottom: MediaQuery.of(dialogCtx).viewInsets.bottom + MediaQuery.of(dialogCtx).padding.bottom + 20,
+                  bottom:
+                      MediaQuery.of(dialogCtx).viewInsets.bottom +
+                      MediaQuery.of(dialogCtx).padding.bottom +
+                      20,
                 ),
                 decoration: const BoxDecoration(
                   color: Colors.white,
@@ -262,7 +270,10 @@ class _ScannerPageState extends ConsumerState<ScannerPage> {
                     ),
                     const Text(
                       'Scan QRIS Dinamis',
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                      ),
                     ),
                     const SizedBox(height: 4),
                     Text(
@@ -283,7 +294,9 @@ class _ScannerPageState extends ConsumerState<ScannerPage> {
                           'https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${Uri.encodeComponent(dynamicQris)}',
                           loadingBuilder: (context, child, loadingProgress) {
                             if (loadingProgress == null) return child;
-                            return const Center(child: CircularProgressIndicator());
+                            return const Center(
+                              child: CircularProgressIndicator(),
+                            );
                           },
                           errorBuilder: (context, error, stackTrace) {
                             return const Center(
@@ -305,7 +318,9 @@ class _ScannerPageState extends ConsumerState<ScannerPage> {
                             onPressed: () => Navigator.pop(dialogCtx, false),
                             style: OutlinedButton.styleFrom(
                               padding: const EdgeInsets.symmetric(vertical: 14),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
                             ),
                             child: const Text('Batal'),
                           ),
@@ -316,7 +331,9 @@ class _ScannerPageState extends ConsumerState<ScannerPage> {
                             onPressed: () => Navigator.pop(dialogCtx, true),
                             style: ElevatedButton.styleFrom(
                               padding: const EdgeInsets.symmetric(vertical: 14),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
                               elevation: 0,
                             ),
                             child: const Text('Sudah Bayar'),
@@ -331,7 +348,13 @@ class _ScannerPageState extends ConsumerState<ScannerPage> {
             );
 
             if (proceed != true) {
-              return CheckoutResult(total: 0, amountPaid: 0, change: 0, paymentMethod: 'qris', items: []);
+              return CheckoutResult(
+                total: 0,
+                amountPaid: 0,
+                change: 0,
+                paymentMethod: 'qris',
+                items: [],
+              );
             }
           }
 
@@ -416,7 +439,7 @@ class _ScannerPageState extends ConsumerState<ScannerPage> {
                     },
                   ),
 
-                  // ── Manual Input ────────────────────────
+                  // ── Manual Input & Add Non-Barcode ─────
                   Padding(
                     padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
                     child: Row(
@@ -438,11 +461,11 @@ class _ScannerPageState extends ConsumerState<ScannerPage> {
                                 borderSide: BorderSide.none,
                               ),
                             ),
-                            keyboardType: TextInputType.number,
+                            keyboardType: TextInputType.text,
                             onSubmitted: (_) => _submitManual(),
                           ),
                         ),
-                        const SizedBox(width: 10),
+                        const SizedBox(width: 8),
                         Hero(
                           tag: 'scan_fab',
                           child: FloatingActionButton.small(
@@ -453,7 +476,29 @@ class _ScannerPageState extends ConsumerState<ScannerPage> {
                               context,
                             ).colorScheme.primary,
                             foregroundColor: Colors.white,
+                            tooltip: 'Cari/Scan Kode',
                             child: const Icon(Icons.send_rounded),
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Material(
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.secondaryContainer,
+                          borderRadius: BorderRadius.circular(12),
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(12),
+                            onTap: _showAddNonBarcodeDialog,
+                            child: Container(
+                              padding: const EdgeInsets.all(10),
+                              child: Icon(
+                                Icons.add_box_rounded,
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSecondaryContainer,
+                                size: 22,
+                              ),
+                            ),
                           ),
                         ),
                       ],
@@ -981,8 +1026,10 @@ class _PaymentBottomSheetState extends State<_PaymentBottomSheet> {
                     onPressed: _isProcessing
                         ? null
                         : () async {
-                            double paid = double.tryParse(
-                                    _amountController.text.replaceAll('.', '')) ??
+                            double paid =
+                                double.tryParse(
+                                  _amountController.text.replaceAll('.', ''),
+                                ) ??
                                 0;
                             if (_selectedMethod != 'tunai') paid = widget.total;
                             if (_selectedMethod == 'tunai' &&

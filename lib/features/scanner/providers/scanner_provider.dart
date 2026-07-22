@@ -151,6 +151,10 @@ class ScannerNotifier extends Notifier<ScannerState> {
     }
   }
 
+  Future<String> generateNonBarcodeCode() async {
+    return await _productRepo.getNextNonBarcodeCode();
+  }
+
   Future<void> addProduct({
     required String barcode,
     required String name,

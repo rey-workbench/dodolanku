@@ -20,46 +20,6 @@ final _lowStockLimitProvider = NotifierProvider<_LowStockLimitNotifier, int>(
 class DashboardPage extends ConsumerWidget {
   const DashboardPage({super.key});
 
-  void _showQuickStockUpdateDialog(
-    BuildContext context,
-    WidgetRef ref,
-    String barcode,
-    String name,
-    int currentStock,
-  ) {
-    final stockCtrl = TextEditingController();
-    final formKey = GlobalKey<FormState>();
-
-    showAppFormModal(
-      context: context,
-      title: 'Update Stok Cepat',
-      subtitle: 'Produk: $name\nStok Saat Ini: $currentStock pcs',
-      formKey: formKey,
-      fields: [
-        AppFormField(
-          controller: stockCtrl,
-          label: 'Jumlah Stok Baru',
-          keyboardType: TextInputType.number,
-          validator: (v) {
-            if (v == null || v.trim().isEmpty) return 'Stok tidak boleh kosong';
-            if (int.tryParse(v) == null) return 'Stok harus berupa angka bulat';
-            return null;
-          },
-        ),
-      ],
-      confirmLabel: 'Simpan',
-      onConfirm: () async {
-        final newStock = int.parse(stockCtrl.text);
-        final db = ref.read(databaseServiceProvider);
-        await db.updateStock(barcode, newStock);
-        ref.invalidate(dashboardProvider);
-        if (context.mounted) {
-          AppToast.show(context, message: 'Stok $name berhasil diupdate menjadi $newStock');
-        }
-      },
-    );
-  }
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final dashboardAsync = ref.watch(dashboardProvider);
@@ -407,12 +367,33 @@ class DashboardPage extends ConsumerWidget {
                                     title: name,
                                     subtitle: 'Tersisa $stock item di gudang',
                                     actionLabel: 'Isi Stok',
-                                    onAction: () => _showQuickStockUpdateDialog(
-                                      context,
-                                      ref,
-                                      barcode,
-                                      name,
-                                      stock,
+                                    onAction: () => showProductFormModal(
+                                      context: context,
+                                      initialBarcode: barcode,
+                                      initialName: name,
+                                      initialStock: stock,
+                                      title: 'Update Stok Cepat',
+                                      subtitle: 'Produk: $name (Stok saat ini: $stock)',
+                                      onSave: ({
+                                        required String barcode,
+                                        required String name,
+                                        required double price,
+                                        required int stock,
+                                      }) async {
+                                        final db = ref.read(databaseServiceProvider);
+                                        await db.updatePriceAndStock(
+                                          barcode,
+                                          price: price,
+                                          stock: stock,
+                                        );
+                                        ref.invalidate(dashboardProvider);
+                                        if (context.mounted) {
+                                          AppToast.show(
+                                            context,
+                                            message: 'Stok $name berhasil diperbarui',
+                                          );
+                                        }
+                                      },
                                     ),
                                   ),
                                 ),

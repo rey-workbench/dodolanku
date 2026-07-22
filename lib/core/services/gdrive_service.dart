@@ -18,6 +18,13 @@ class GoogleAuthClient extends http.BaseClient {
     request.headers.addAll(_headers);
     return _client.send(request);
   }
+
+  @override
+  // BUG-002 fix: tutup _client agar tidak ada connection leak
+  void close() {
+    _client.close();
+    super.close();
+  }
 }
 
 class GDriveService {
@@ -50,47 +57,53 @@ class GDriveService {
       if (account == null) return 'Gagal login ke akun Google.';
 
       final authHeaders = await account.authHeaders;
-      final authClient = GoogleAuthClient(authHeaders);
-      final driveApi = drive.DriveApi(authClient);
+      // BUG-002 fix: gunakan try/finally agar client selalu di-close
+      final client = GoogleAuthClient(authHeaders);
+      try {
+        final driveApi = drive.DriveApi(client);
 
-      final dbPath = await getDatabasesPath();
-      final file = File(join(dbPath, DatabaseConfig.localDbName));
-      if (!await file.exists()) return 'File database lokal (${DatabaseConfig.localDbName}) tidak ditemukan.';
+        final dbPath = await getDatabasesPath();
+        final file = File(join(dbPath, DatabaseConfig.localDbName));
+        if (!await file.exists()) return 'File database lokal (${DatabaseConfig.localDbName}) tidak ditemukan.';
 
-      // Cari file backup lama
-      final fileList = await driveApi.files.list(
-        spaces: 'appDataFolder',
-        q: "name = 'yourcashier_backup.db'",
-      );
-
-      final media = drive.Media(file.openRead(), file.lengthSync());
-
-      if (fileList.files != null && fileList.files!.isNotEmpty) {
-        // Update file lama yang sudah ada
-        final fileId = fileList.files!.first.id!;
-        await driveApi.files.update(
-          drive.File(),
-          fileId,
-          uploadMedia: media,
+        // Cari file backup lama
+        final fileList = await driveApi.files.list(
+          spaces: 'appDataFolder',
+          q: "name = 'dodolanku.db'",
         );
-      } else {
-        // Buat file baru di appDataFolder
-        final driveFile = drive.File()
-          ..name = 'yourcashier_backup.db'
-          ..parents = ['appDataFolder'];
-        await driveApi.files.create(
-          driveFile,
-          uploadMedia: media,
-        );
+
+        final media = drive.Media(file.openRead(), file.lengthSync());
+
+        if (fileList.files != null && fileList.files!.isNotEmpty) {
+          // Update file lama yang sudah ada
+          final fileId = fileList.files!.first.id!;
+          await driveApi.files.update(
+            drive.File(),
+            fileId,
+            uploadMedia: media,
+          );
+        } else {
+          // Buat file baru di appDataFolder
+          final driveFile = drive.File()
+            ..name = 'dodolanku.db'
+            ..parents = ['appDataFolder'];
+          await driveApi.files.create(
+            driveFile,
+            uploadMedia: media,
+          );
+        }
+        return null; // Null means success
+      } finally {
+        client.close();
       }
-      return null; // Null means success
     } catch (e) {
       debugPrint('GDrive Upload Error: $e');
       return e.toString();
     }
   }
 
-  /// Download & pulihkan database SQLite dari Google Drive ke HP
+  /// Download & pulihkan database SQLite dari Google Drive ke HP.
+  /// Returns true jika berhasil. Caller WAJIB reinit DatabaseService setelah ini.
   static Future<bool> restoreBackup() async {
     try {
       var account = await currentUser();
@@ -98,31 +111,40 @@ class GDriveService {
       if (account == null) return false;
 
       final authHeaders = await account.authHeaders;
-      final authClient = GoogleAuthClient(authHeaders);
-      final driveApi = drive.DriveApi(authClient);
+      // BUG-002 fix: gunakan try/finally agar client selalu di-close
+      final client = GoogleAuthClient(authHeaders);
+      try {
+        final driveApi = drive.DriveApi(client);
 
-      final fileList = await driveApi.files.list(
-        spaces: 'appDataFolder',
-        q: "name = 'yourcashier_backup.db'",
-      );
+        final fileList = await driveApi.files.list(
+          spaces: 'appDataFolder',
+          q: "name = 'dodolanku.db'",
+        );
 
-      if (fileList.files == null || fileList.files!.isEmpty) return false;
+        if (fileList.files == null || fileList.files!.isEmpty) return false;
 
-      final fileId = fileList.files!.first.id!;
-      final drive.Media fileMedia = await driveApi.files.get(
-        fileId,
-        downloadOptions: drive.DownloadOptions.fullMedia,
-      ) as drive.Media;
+        final fileId = fileList.files!.first.id!;
+        final drive.Media fileMedia = await driveApi.files.get(
+          fileId,
+          downloadOptions: drive.DownloadOptions.fullMedia,
+        ) as drive.Media;
 
-      final dbPath = await getDatabasesPath();
-      final localFile = File(join(dbPath, DatabaseConfig.localDbName));
+        final dbPath = await getDatabasesPath();
+        final localFile = File(join(dbPath, DatabaseConfig.localDbName));
 
-      final List<int> dataBytes = [];
-      await for (final data in fileMedia.stream) {
-        dataBytes.addAll(data);
+        final List<int> dataBytes = [];
+        await for (final data in fileMedia.stream) {
+          dataBytes.addAll(data);
+        }
+        // BUG-003 fix: tulis ke file temp dulu, baru rename agar atomic
+        final tmpFile = File('${localFile.path}.tmp');
+        await tmpFile.writeAsBytes(dataBytes, flush: true);
+        if (await localFile.exists()) await localFile.delete();
+        await tmpFile.rename(localFile.path);
+        return true;
+      } finally {
+        client.close();
       }
-      await localFile.writeAsBytes(dataBytes);
-      return true;
     } catch (e) {
       debugPrint('GDrive Restore Error: $e');
       return false;

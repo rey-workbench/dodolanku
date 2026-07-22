@@ -244,6 +244,16 @@ class ScannerNotifier extends Notifier<ScannerState> {
       );
     }
 
+    // BUG-004 fix: validasi stok sebelum proses checkout
+    for (final cartItem in state.cart) {
+      final product = await _productRepo.getProductDetails(cartItem.barcode);
+      if (product != null && product.stock > 0 && cartItem.qty > product.stock) {
+        throw Exception(
+          'Stok ${cartItem.name} tidak mencukupi (tersisa ${product.stock}, diminta ${cartItem.qty})',
+        );
+      }
+    }
+
     final total = state.cartTotal;
     final change = amountPaid - total;
     final cartSnapshot = List<CartItem>.from(state.cart);

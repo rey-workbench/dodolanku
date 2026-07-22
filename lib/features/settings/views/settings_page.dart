@@ -222,7 +222,17 @@ class SettingsPage extends ConsumerWidget {
                       final success = await GDriveService.restoreBackup();
                       if (context.mounted) {
                         if (success) {
-                          AppToast.show(context, message: 'Data berhasil dipulihkan!');
+                          // BUG-003 fix: reinit DB setelah file ditimpa agar
+                          // koneksi lama ditutup dan data baru langsung aktif.
+                          final dbService = ref.read(databaseServiceProvider);
+                          dbService.dispose();
+                          await dbService.initDb();
+                          if (context.mounted) {
+                            AppToast.show(
+                              context,
+                              message: 'Data berhasil dipulihkan! Silakan navigasi ulang.',
+                            );
+                          }
                         } else {
                           AppToast.show(context, message: 'File backup tidak ditemukan atau gagal dipulihkan.');
                         }

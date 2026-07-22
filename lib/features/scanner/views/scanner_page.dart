@@ -954,7 +954,9 @@ class _PaymentBottomSheetState extends State<_PaymentBottomSheet> {
                   ),
                 ),
                 onChanged: (val) {
-                  final paid = double.tryParse(val) ?? 0;
+                  // BUG-005 fix: strip titik separator ribuan sebelum parse
+                  final clean = val.replaceAll('.', '').trim();
+                  final paid = double.tryParse(clean) ?? 0;
                   setState(() => _change = paid - widget.total);
                 },
               ),
@@ -1043,7 +1045,23 @@ class _PaymentBottomSheetState extends State<_PaymentBottomSheet> {
                               return;
                             }
                             setState(() => _isProcessing = true);
-                            await widget.onConfirm(_selectedMethod, paid);
+                            try {
+                              await widget.onConfirm(_selectedMethod, paid);
+                            } catch (e) {
+                              // BUG-006 fix: reset _isProcessing agar tombol tidak locked permanen
+                              final errMsg = e.toString().replaceAll('Exception: ', '');
+                              if (mounted) {
+                                AppToast.show(
+                                  // ignore: use_build_context_synchronously
+                                  context,
+                                  message: 'Terjadi kesalahan: $errMsg',
+                                  isError: true,
+                                  bottomMargin: bottomInset + 300,
+                                );
+                              }
+                            } finally {
+                              if (mounted) setState(() => _isProcessing = false);
+                            }
                           },
                     style: ElevatedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 14),

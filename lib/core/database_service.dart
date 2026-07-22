@@ -155,7 +155,8 @@ class DatabaseService {
   // ─────────────────────────────────────────────
 
   Future<Map<String, dynamic>?> getProductDetails(String barcode) async {
-    if (_db == null || _globalDb == null) return null;
+    // BUG-001 fix: guard _db saja, globalDb boleh null secara independent
+    if (_db == null) return null;
     final clean = barcode.trim();
     if (clean.isEmpty) return null;
 
@@ -170,15 +171,17 @@ class DatabaseService {
       return localRows.first;
     }
 
-    // Check global db if not found
-    final globalRows = await _globalDb!.query(
-      'products',
-      columns: ['barcode', 'name'],
-      where: 'barcode = ?',
-      whereArgs: [clean],
-    );
-    if (globalRows.isNotEmpty) {
-      return globalRows.first;
+    // Check global db if not found (only if available)
+    if (_globalDb != null) {
+      final globalRows = await _globalDb!.query(
+        'products',
+        columns: ['barcode', 'name'],
+        where: 'barcode = ?',
+        whereArgs: [clean],
+      );
+      if (globalRows.isNotEmpty) {
+        return globalRows.first;
+      }
     }
 
     return null;
@@ -753,7 +756,8 @@ class DatabaseService {
   }
 
   void dispose() {
-    NetworkService.instance.dispose();
+    // BUG-009 fix: jangan dispose singleton NetworkService dari sini,
+    // lifecycle NetworkService dikelola di app-level, bukan per-DatabaseService.
     _db?.close();
     _globalDb?.close();
   }

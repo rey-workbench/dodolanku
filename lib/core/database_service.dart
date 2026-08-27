@@ -598,6 +598,8 @@ class DatabaseService {
   
   
   Future<int> syncMasterProductsFromTurso() async {
+    await initDb();
+
     if (!_turso.isConfigured) {
       return await syncMasterProductsToLocal();
     }
@@ -617,21 +619,25 @@ class DatabaseService {
     final tursoBarcodes = remote.map((p) => p['barcode']!).toSet();
     int newFromTursoCount = 0;
 
-    // ARAH 1: PULL -> merge data valid ke lokal
-    await _db!.transaction((txn) async {
-      final batch = txn.batch();
-      for (final p in remote) {
-        batch.rawInsert(
-          '''
-          INSERT OR IGNORE INTO products (barcode, name, price, stock)
-          VALUES (?, ?, 0.0, 0)
-          ''',
-          [p['barcode'], p['name']],
-        );
-      }
-      final batchRes = await batch.commit(noResult: false);
-      newFromTursoCount = batchRes.where((r) => r is int && r > 0).length;
-    });
+    // ARAH 1: PULL -> merge data valid ke lokal dengan batch chunking aman (1000 baris/batch)
+    const batchChunkSize = 1000;
+    for (var i = 0; i < remote.length; i += batchChunkSize) {
+      final chunk = remote.skip(i).take(batchChunkSize);
+      await _db!.transaction((txn) async {
+        final batch = txn.batch();
+        for (final p in chunk) {
+          batch.rawInsert(
+            '''
+            INSERT OR IGNORE INTO products (barcode, name, price, stock)
+            VALUES (?, ?, 0.0, 0)
+            ''',
+            [p['barcode'], p['name']],
+          );
+        }
+        final batchRes = await batch.commit(noResult: false);
+        newFromTursoCount += batchRes.where((r) => r is int && r > 0).length;
+      });
+    }
 
     // ARAH 2: PUSH produk lokal ke cloud (pushProducts otomatis menyaring data valid)
     try {
@@ -659,6 +665,7 @@ class DatabaseService {
   /// Menyinkronkan produk dari Global Master DB (Assets) ke Local DB
   /// Hanya memasukkan (merge) produk standar yang valid dan barcodenya BELUM ada di Local DB.
   Future<int> syncMasterProductsToLocal() async {
+    await initDb();
     if (_db == null || _globalDb == null) return 0;
 
     final globalProducts = await _globalDb!.query(
@@ -670,29 +677,34 @@ class DatabaseService {
 
     int newItemsCount = 0;
 
-    await _db!.transaction((txn) async {
-      final batch = txn.batch();
+    // Chunking 1000 baris per batch transaction agar tidak memicu memory overflow pada Android JNI
+    const batchChunkSize = 1000;
+    for (var i = 0; i < globalProducts.length; i += batchChunkSize) {
+      final chunk = globalProducts.skip(i).take(batchChunkSize);
+      await _db!.transaction((txn) async {
+        final batch = txn.batch();
 
-      for (final item in globalProducts) {
-        final barcode = (item['barcode'] as String?)?.trim();
-        final name = BarcodeValidator.cleanProductName(item['name'] as String?);
+        for (final item in chunk) {
+          final barcode = (item['barcode'] as String?)?.trim();
+          final name = BarcodeValidator.cleanProductName(item['name'] as String?);
 
-        if (!BarcodeValidator.isValidMasterProduct(barcode, name)) {
-          continue;
+          if (!BarcodeValidator.isValidMasterProduct(barcode, name)) {
+            continue;
+          }
+
+          batch.rawInsert(
+            '''
+            INSERT OR IGNORE INTO products (barcode, name, price, stock)
+            VALUES (?, ?, 0.0, 0)
+            ''',
+            [barcode, name],
+          );
         }
 
-        batch.rawInsert(
-          '''
-          INSERT OR IGNORE INTO products (barcode, name, price, stock)
-          VALUES (?, ?, 0.0, 0)
-          ''',
-          [barcode, name],
-        );
-      }
-
-      final results = await batch.commit(noResult: false);
-      newItemsCount = results.where((r) => r is int && r > 0).length;
-    });
+        final results = await batch.commit(noResult: false);
+        newItemsCount += results.where((r) => r is int && r > 0).length;
+      });
+    }
 
     return newItemsCount;
   }

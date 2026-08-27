@@ -88,8 +88,8 @@ if errorlevel 1 (
 )
 
 echo.
-echo [3/4] Membuat Tag v!VERSION!...
-git tag -a "v!VERSION!" -m "!msg!"
+echo [3/4] Membuat/Menimpa Tag v!VERSION!...
+git tag -a -f "v!VERSION!" -m "!msg!"
 if errorlevel 1 (
     echo [ERROR] Gagal membuat tag v!VERSION!.
     pause
@@ -107,7 +107,7 @@ if errorlevel 1 (
 
 git push origin "v!VERSION!" --force
 if errorlevel 1 (
-    echo [ERROR] Gagal push tag v%VERSION% ke origin.
+    echo [ERROR] Gagal push tag v!VERSION! ke origin.
     pause
     exit /b 1
 )

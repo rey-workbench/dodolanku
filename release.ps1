@@ -75,8 +75,8 @@ if ($LASTEXITCODE -ne 0) {
     Write-Host "(Tidak ada perubahan baru untuk di-commit, melanjutkan ke tag...)" -ForegroundColor Gray
 }
 
-Write-Host "[3/4] Membuat Tag v$version..." -ForegroundColor Cyan
-git tag -a "v$version" -m "Release v$version"
+Write-Host "[3/4] Membuat/Menimpa Tag v$version..." -ForegroundColor Cyan
+git tag -a -f "v$version" -m $msg
 if ($LASTEXITCODE -ne 0) {
     Write-Host "[ERROR] Gagal membuat tag v$version." -ForegroundColor Red
     Exit 1

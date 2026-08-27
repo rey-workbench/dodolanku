@@ -27,7 +27,7 @@ class DebtRepositoryImpl implements DebtRepository {
   @override
   Future<List<DebtNote>> getDebtNotes() async {
     final list = await _dbService.getDebtNotes();
-    return list.map((m) => DebtNote.fromMap(m)).toList();
+    return list.map(DebtNote.fromMap).toList();
   }
 
   @override
@@ -36,27 +36,20 @@ class DebtRepositoryImpl implements DebtRepository {
     required double amount,
     String? description,
     String? dueDate,
-  }) async {
-    return await _dbService.insertDebtNote(
-      debtorName: debtorName,
-      amount: amount,
-      description: description,
-      dueDate: dueDate,
-    );
-  }
+  }) =>
+      _dbService.insertDebtNote(
+        debtorName: debtorName,
+        amount: amount,
+        description: description,
+        dueDate: dueDate,
+      );
 
   @override
-  Future<void> addDebtPayment(int id, double payment) async {
-    await _dbService.addDebtPayment(id, payment);
-  }
+  Future<void> addDebtPayment(int id, double payment) => _dbService.addDebtPayment(id, payment);
 
   @override
-  Future<void> settleDebt(int id) async {
-    await _dbService.settleDebt(id);
-  }
+  Future<void> settleDebt(int id) => _dbService.settleDebt(id);
 
   @override
-  Future<void> deleteDebtNote(int id) async {
-    await _dbService.deleteDebtNote(id);
-  }
+  Future<void> deleteDebtNote(int id) => _dbService.deleteDebtNote(id);
 }

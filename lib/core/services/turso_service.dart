@@ -1,8 +1,7 @@
 import 'dart:convert';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
-
-
+import 'package:dodolanku/core/utils/barcode_validator.dart';
 
 class TursoService {
   TursoService._();
@@ -39,8 +38,8 @@ class TursoService {
         .timeout(const Duration(seconds: 20));
   }
 
-  
-  
+  /// Menarik seluruh master produk dari Turso Cloud.
+  /// Hanya mengembalikan barcode ritel standar yang valid dan nama yang tersanitasi.
   Future<List<Map<String, String>>> pullProducts() async {
     final response = await http.post(
       _pipelineEndpoint,
@@ -65,42 +64,44 @@ class TursoService {
     final rows = (results.first['response']?['result']?['rows']) as List?;
     if (rows == null) return [];
 
-    return rows.map((row) {
-      final barcode = row[0]?['value']?.toString().trim();
-      final name = row[1]?['value']?.toString().trim();
-      return {
-        'barcode': barcode ?? '',
-        'name': name ?? '',
-      };
-    }).where((p) => p['barcode']!.isNotEmpty && p['name']!.isNotEmpty).toList();
+    final cleanList = <Map<String, String>>[];
+    for (final row in rows) {
+      final barcode = row[0]?['value']?.toString().trim() ?? '';
+      final name = BarcodeValidator.cleanProductName(row[1]?['value']?.toString());
+      if (BarcodeValidator.isValidMasterProduct(barcode, name)) {
+        cleanList.add({
+          'barcode': barcode,
+          'name': name,
+        });
+      }
+    }
+    return cleanList;
   }
 
-  
+  /// Mengirim/memperbarui 1 produk ke master katalog Turso Cloud.
   Future<void> pushProduct(String barcode, String name) async {
-    if (!isConfigured) return;
-    await _postPipeline([
-      {
-        "type": "execute",
-        "stmt": {
-          "sql":
-              "INSERT INTO masterproduct (barcode, name) VALUES (?, ?) ON CONFLICT(barcode) DO UPDATE SET name = excluded.name",
-          "args": [
-            {"type": "text", "value": barcode},
-            {"type": "text", "value": name},
-          ],
-        },
-      },
-      {"type": "close"},
-    ]);
+    await pushProducts([{'barcode': barcode, 'name': name}]);
   }
 
-  
-  
+  /// Mengirim kumpulan produk lokal ke master katalog Turso Cloud secara batch.
+  /// Menyaring hanya produk yang memenuhi standar ritel GTIN.
   Future<void> pushProducts(List<Map<String, String>> products) async {
     if (!isConfigured || products.isEmpty) return;
+
+    final validProducts = products.where((p) {
+      final bc = p['barcode']?.trim() ?? '';
+      final nm = BarcodeValidator.cleanProductName(p['name']);
+      return BarcodeValidator.isValidMasterProduct(bc, nm);
+    }).map((p) => {
+      'barcode': p['barcode']!.trim(),
+      'name': BarcodeValidator.cleanProductName(p['name']),
+    }).toList();
+
+    if (validProducts.isEmpty) return;
+
     const batchSize = 200;
-    for (var i = 0; i < products.length; i += batchSize) {
-      final chunk = products.skip(i).take(batchSize).toList();
+    for (var i = 0; i < validProducts.length; i += batchSize) {
+      final chunk = validProducts.skip(i).take(batchSize).toList();
       final requests = chunk.map((p) {
         return {
           "type": "execute",

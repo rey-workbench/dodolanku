@@ -27,9 +27,8 @@ class TransactionRepositoryImpl implements TransactionRepository {
   TransactionRepositoryImpl(this._dbService);
 
   @override
-  Future<void> deleteTransaction(int transactionId, {bool restoreStock = true}) async {
-    await _dbService.deleteTransaction(transactionId, restoreStock: restoreStock);
-  }
+  Future<void> deleteTransaction(int transactionId, {bool restoreStock = true}) =>
+      _dbService.deleteTransaction(transactionId, restoreStock: restoreStock);
 
   @override
   Future<int> insertTransaction({
@@ -38,9 +37,9 @@ class TransactionRepositoryImpl implements TransactionRepository {
     required double amountPaid,
     required double changeAmount,
     required List<TransactionItemModel> items,
-  }) async {
+  }) {
     final rawItems = items.map((item) => item.toMap()).toList();
-    return await _dbService.insertTransaction(
+    return _dbService.insertTransaction(
       totalAmount: totalAmount,
       paymentMethod: paymentMethod,
       amountPaid: amountPaid,
@@ -52,22 +51,19 @@ class TransactionRepositoryImpl implements TransactionRepository {
   @override
   Future<List<TransactionModel>> getTransactions({int limit = 50}) async {
     final list = await _dbService.getTransactions(limit: limit);
-    return list.map((m) => TransactionModel.fromMap(m)).toList();
+    return list.map(TransactionModel.fromMap).toList();
   }
 
   @override
   Future<List<TransactionItemModel>> getTransactionItems(int transactionId) async {
     final list = await _dbService.getTransactionItems(transactionId);
-    return list.map((m) => TransactionItemModel.fromMap(m)).toList();
+    return list.map(TransactionItemModel.fromMap).toList();
   }
 
   @override
-  Future<Map<String, dynamic>> getDashboardStats() async {
-    return await _dbService.getDashboardStats();
-  }
+  Future<Map<String, dynamic>> getDashboardStats() => _dbService.getDashboardStats();
 
   @override
-  Future<List<Map<String, dynamic>>> getTopProducts({int limit = 5}) async {
-    return await _dbService.getTopProducts(limit: limit);
-  }
+  Future<List<Map<String, dynamic>>> getTopProducts({int limit = 5}) =>
+      _dbService.getTopProducts(limit: limit);
 }

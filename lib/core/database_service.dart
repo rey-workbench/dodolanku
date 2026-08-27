@@ -13,6 +13,7 @@ import 'package:dodolanku/core/services/turso_service.dart';
 import 'package:dodolanku/core/database/database_schema.dart';
 import 'package:dodolanku/core/database/database_migrations.dart';
 import 'package:dodolanku/core/database/database_seeders.dart';
+import 'package:dodolanku/core/utils/barcode_validator.dart';
 
 
 final databaseServiceProvider = Provider<DatabaseService>((ref) {
@@ -223,17 +224,6 @@ class DatabaseService {
   }
 
   
-  Future<void> _tryPushToTurso(String barcode, String name) async {
-    final cleanBc = barcode.trim();
-    final cleanName = name.trim();
-    if (cleanBc.isEmpty || cleanName.isEmpty) return;
-    try {
-      await _turso.pushProduct(cleanBc, cleanName);
-    } catch (_) {
-      
-    }
-  }
-
   Future<void> insertProduct(
     String barcode,
     String name,
@@ -250,11 +240,10 @@ class DatabaseService {
       'stock': stock,
     }, conflictAlgorithm: ConflictAlgorithm.replace);
 
-    
-    _tryPushToTurso(cleanBc, cleanName);
+    _turso.pushProduct(cleanBc, cleanName);
   }
 
-  
+  /// Update nama, harga, dan/atau stok produk yang sudah terdaftar.
   Future<void> updatePriceAndStock(
     String barcode, {
     String? name,
@@ -278,9 +267,9 @@ class DatabaseService {
       whereArgs: [cleanBc],
     );
 
-    
+    // Jika nama diperbarui, otomatis update ke Turso Cloud di background
     if (data.containsKey('name')) {
-      _tryPushToTurso(cleanBc, data['name']);
+      _turso.pushProduct(cleanBc, data['name']);
     }
   }
 
@@ -610,7 +599,6 @@ class DatabaseService {
   
   Future<int> syncMasterProductsFromTurso() async {
     if (!_turso.isConfigured) {
-      
       return await syncMasterProductsToLocal();
     }
 
@@ -620,7 +608,7 @@ class DatabaseService {
     final tursoBarcodes = remote.map((p) => p['barcode']!).toSet();
     int newFromTursoCount = 0;
 
-    
+    // ARAH 1: PULL -> merge data valid ke lokal
     await _db!.transaction((txn) async {
       final batch = txn.batch();
       for (final p in remote) {
@@ -636,7 +624,7 @@ class DatabaseService {
       newFromTursoCount = batchRes.where((r) => r is int && r > 0).length;
     });
 
-    
+    // ARAH 2: PUSH produk lokal ke cloud (pushProducts otomatis menyaring data valid)
     final localProducts = await _db!.query(
       'products',
       columns: ['barcode', 'name'],
@@ -644,10 +632,10 @@ class DatabaseService {
           'barcode IS NOT NULL AND barcode != "" AND name IS NOT NULL AND name != ""',
     );
     final toPush = localProducts
-        .where((p) => !tursoBarcodes.contains(p['barcode']))
+        .where((p) => !tursoBarcodes.contains((p['barcode'] as String).trim()))
         .map((p) => {
-              'barcode': p['barcode'] as String,
-              'name': p['name'] as String,
+              'barcode': (p['barcode'] as String).trim(),
+              'name': (p['name'] as String).trim(),
             })
         .toList();
     if (toPush.isNotEmpty) {
@@ -657,12 +645,11 @@ class DatabaseService {
     return newFromTursoCount;
   }
 
-  
-  
+  /// Menyinkronkan produk dari Global Master DB (Assets) ke Local DB
+  /// Hanya memasukkan (merge) produk standar yang valid dan barcodenya BELUM ada di Local DB.
   Future<int> syncMasterProductsToLocal() async {
     if (_db == null || _globalDb == null) return 0;
 
-    
     final globalProducts = await _globalDb!.query(
       'products',
       columns: ['barcode', 'name'],
@@ -672,19 +659,17 @@ class DatabaseService {
 
     int newItemsCount = 0;
 
-    
     await _db!.transaction((txn) async {
       final batch = txn.batch();
 
       for (final item in globalProducts) {
         final barcode = (item['barcode'] as String?)?.trim();
-        final name = (item['name'] as String?)?.trim();
+        final name = BarcodeValidator.cleanProductName(item['name'] as String?);
 
-        if (barcode == null || barcode.isEmpty || name == null || name.isEmpty) {
+        if (!BarcodeValidator.isValidMasterProduct(barcode, name)) {
           continue;
         }
 
-        
         batch.rawInsert(
           '''
           INSERT OR IGNORE INTO products (barcode, name, price, stock)
@@ -695,7 +680,6 @@ class DatabaseService {
       }
 
       final results = await batch.commit(noResult: false);
-      
       newItemsCount = results.where((r) => r is int && r > 0).length;
     });
 

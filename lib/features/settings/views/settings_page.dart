@@ -302,7 +302,8 @@ class SettingsPage extends ConsumerWidget {
                     }
                   } catch (e) {
                     if (context.mounted) {
-                      AppToast.show(context, message: 'Gagal sinkronisasi: $e');
+                      final msg = e.toString().replaceAll('Exception: ', '');
+                      AppToast.show(context, message: 'Gagal sinkronisasi: $msg');
                     }
                   }
                 },

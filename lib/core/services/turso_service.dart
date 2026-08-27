@@ -29,53 +29,61 @@ class TursoService {
       };
 
   Future<void> _postPipeline(List<Map<String, dynamic>> requests) async {
-    await http
-        .post(
-          _pipelineEndpoint,
-          headers: _headers,
-          body: jsonEncode({"requests": requests}),
-        )
-        .timeout(const Duration(seconds: 20));
+    try {
+      await http
+          .post(
+            _pipelineEndpoint,
+            headers: _headers,
+            body: jsonEncode({"requests": requests}),
+          )
+          .timeout(const Duration(seconds: 60));
+    } catch (e) {
+      throw Exception('Gagal mengirim data ke Turso Cloud ($e)');
+    }
   }
 
   /// Menarik seluruh master produk dari Turso Cloud.
   /// Hanya mengembalikan barcode ritel standar yang valid dan nama yang tersanitasi.
   Future<List<Map<String, String>>> pullProducts() async {
-    final response = await http.post(
-      _pipelineEndpoint,
-      headers: _headers,
-      body: jsonEncode({
-        "requests": [
-          {"type": "execute", "stmt": {"sql": "SELECT barcode, name FROM masterproduct"}},
-          {"type": "close"},
-        ],
-      }),
-    ).timeout(const Duration(seconds: 20));
+    try {
+      final response = await http.post(
+        _pipelineEndpoint,
+        headers: _headers,
+        body: jsonEncode({
+          "requests": [
+            {"type": "execute", "stmt": {"sql": "SELECT barcode, name FROM masterproduct"}},
+            {"type": "close"},
+          ],
+        }),
+      ).timeout(const Duration(seconds: 60));
 
-    if (response.statusCode != 200) {
-      throw Exception(
-        'Gagal menghubungi Turso API (${response.statusCode}): ${response.body}',
-      );
-    }
-
-    final data = jsonDecode(response.body);
-    final results = data['results'] as List?;
-    if (results == null || results.isEmpty) return [];
-    final rows = (results.first['response']?['result']?['rows']) as List?;
-    if (rows == null) return [];
-
-    final cleanList = <Map<String, String>>[];
-    for (final row in rows) {
-      final barcode = row[0]?['value']?.toString().trim() ?? '';
-      final name = BarcodeValidator.cleanProductName(row[1]?['value']?.toString());
-      if (BarcodeValidator.isValidMasterProduct(barcode, name)) {
-        cleanList.add({
-          'barcode': barcode,
-          'name': name,
-        });
+      if (response.statusCode != 200) {
+        throw Exception(
+          'Turso API mengembalikan status ${response.statusCode}',
+        );
       }
+
+      final data = jsonDecode(response.body);
+      final results = data['results'] as List?;
+      if (results == null || results.isEmpty) return [];
+      final rows = (results.first['response']?['result']?['rows']) as List?;
+      if (rows == null) return [];
+
+      final cleanList = <Map<String, String>>[];
+      for (final row in rows) {
+        final barcode = row[0]?['value']?.toString().trim() ?? '';
+        final name = BarcodeValidator.cleanProductName(row[1]?['value']?.toString());
+        if (BarcodeValidator.isValidMasterProduct(barcode, name)) {
+          cleanList.add({
+            'barcode': barcode,
+            'name': name,
+          });
+        }
+      }
+      return cleanList;
+    } catch (e) {
+      throw Exception('Gagal mengunduh dari Turso: ${e.toString().replaceAll("Exception: ", "")}');
     }
-    return cleanList;
   }
 
   /// Mengirim/memperbarui 1 produk ke master katalog Turso Cloud.

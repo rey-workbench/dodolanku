@@ -602,8 +602,17 @@ class DatabaseService {
       return await syncMasterProductsToLocal();
     }
 
-    final remote = await _turso.pullProducts(); 
-    if (remote.isEmpty || _db == null) return 0;
+    List<Map<String, String>> remote = [];
+    try {
+      remote = await _turso.pullProducts();
+    } catch (e) {
+      debugPrint('[DatabaseService] Turso pull gagal ($e), fallback ke local asset master.');
+      return await syncMasterProductsToLocal();
+    }
+
+    if (remote.isEmpty || _db == null) {
+      return await syncMasterProductsToLocal();
+    }
 
     final tursoBarcodes = remote.map((p) => p['barcode']!).toSet();
     int newFromTursoCount = 0;
@@ -625,22 +634,24 @@ class DatabaseService {
     });
 
     // ARAH 2: PUSH produk lokal ke cloud (pushProducts otomatis menyaring data valid)
-    final localProducts = await _db!.query(
-      'products',
-      columns: ['barcode', 'name'],
-      where:
-          'barcode IS NOT NULL AND barcode != "" AND name IS NOT NULL AND name != ""',
-    );
-    final toPush = localProducts
-        .where((p) => !tursoBarcodes.contains((p['barcode'] as String).trim()))
-        .map((p) => {
-              'barcode': (p['barcode'] as String).trim(),
-              'name': (p['name'] as String).trim(),
-            })
-        .toList();
-    if (toPush.isNotEmpty) {
-      await _turso.pushProducts(toPush);
-    }
+    try {
+      final localProducts = await _db!.query(
+        'products',
+        columns: ['barcode', 'name'],
+        where:
+            'barcode IS NOT NULL AND barcode != "" AND name IS NOT NULL AND name != ""',
+      );
+      final toPush = localProducts
+          .where((p) => !tursoBarcodes.contains((p['barcode'] as String).trim()))
+          .map((p) => {
+                'barcode': (p['barcode'] as String).trim(),
+                'name': (p['name'] as String).trim(),
+              })
+          .toList();
+      if (toPush.isNotEmpty) {
+        await _turso.pushProducts(toPush);
+      }
+    } catch (_) {}
 
     return newFromTursoCount;
   }

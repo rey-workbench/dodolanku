@@ -17,24 +17,43 @@ class PrintService {
 
   final DatabaseService _db = DatabaseService();
 
+  static const _autoPrintKey = 'auto_print';
+  static const _paperSizeKey = 'paper_size';
+
   bool _isAutoPrintEnabled = true;
   bool get isAutoPrintEnabled => _isAutoPrintEnabled;
-
-  void setAutoPrint(bool value) {
-    _isAutoPrintEnabled = value;
-  }
 
   String _paperSize = '58';
   String get paperSize => _paperSize;
 
-  void setPaperSize(String value) {
-    _paperSize = value;
+  
+  
+  Future<void> loadSettings() async {
+    try {
+      await _db.initDb();
+      final auto = await _db.getSetting(_autoPrintKey);
+      if (auto != null) _isAutoPrintEnabled = auto == '1';
+      final size = await _db.getSetting(_paperSizeKey);
+      if (size != null && (size == '58' || size == '80')) _paperSize = size;
+    } catch (_) {
+      
+    }
   }
 
-  /// Meminta permission bluetooth dan mendapatkan daftar device yang terikat (paired)
+  void setAutoPrint(bool value) {
+    _isAutoPrintEnabled = value;
+    _db.setSetting(_autoPrintKey, value ? '1' : '0');
+  }
+
+  void setPaperSize(String value) {
+    _paperSize = value;
+    _db.setSetting(_paperSizeKey, value);
+  }
+
+  
   Future<List<BluetoothInfo>> getPairedDevices() async {
     try {
-      // Menggunakan PermissionService
+      
       final bool hasPermission = await PermissionService.instance.requestBluetoothPermissions();
       if (!hasPermission) {
         dev.log('Bluetooth permissions are not granted');
@@ -54,7 +73,7 @@ class PrintService {
     }
   }
 
-  /// Menghubungkan ke printer via MAC Address
+  
   Future<bool> connect(String macAddress) async {
     try {
       final bool result = await PrintBluetoothThermal.connect(
@@ -68,7 +87,7 @@ class PrintService {
     }
   }
 
-  /// Memutus koneksi printer
+  
   Future<bool> disconnect() async {
     try {
       final bool result = await PrintBluetoothThermal.disconnect;
@@ -80,7 +99,7 @@ class PrintService {
     }
   }
 
-  /// Cek status koneksi printer
+  
   Future<bool> isConnected() async {
     try {
       return await PrintBluetoothThermal.connectionStatus;
@@ -89,11 +108,11 @@ class PrintService {
     }
   }
 
-  /// Mencetak test page dengan konfigurasi dinamis
+  
   Future<bool> printTest() async {
     if (!await isConnected()) return false;
 
-    // Load config
+    
     await _db.initDb();
     final config = await _db.getReceiptConfig();
     final storeName = config['store_name'] ?? 'dodolanku';
@@ -123,7 +142,7 @@ class PrintService {
     bytes += generator.text('Ready to print receipt.', styles: const PosStyles(align: PosAlign.center));
     bytes += generator.feed(1);
     
-    // Powered footer
+    
     bytes += generator.hr();
     bytes += generator.text('powered by :', styles: const PosStyles(align: PosAlign.center));
     bytes += generator.text('reynaldsilva.my.id', styles: const PosStyles(align: PosAlign.center, bold: true));
@@ -138,7 +157,7 @@ class PrintService {
       final svgString = await rootBundle.loadString('assets/logo.svg');
       final pictureInfo = await vg.loadPicture(SvgStringLoader(svgString), null);
       
-      // Lebar bitmap thermal printer wajib kelipatan 8 agar driver hardware tidak crash/macet
+      
       final int rawWidth = (printWidth * 0.2).clamp(64.0, 96.0).toInt();
       final int targetWidth = (rawWidth ~/ 8) * 8;
       final double ratio = pictureInfo.size.height / pictureInfo.size.width;
@@ -165,7 +184,7 @@ class PrintService {
     }
   }
 
-  /// Mencetak struk transaksi dengan konfigurasi dinamis
+  
   Future<bool> printReceipt({
     required double total,
     required double paid,
@@ -175,7 +194,7 @@ class PrintService {
   }) async {
     if (!await isConnected()) return false;
 
-    // Load config
+    
     await _db.initDb();
     final config = await _db.getReceiptConfig();
     final storeName = config['store_name'] ?? 'dodolanku';
@@ -185,7 +204,7 @@ class PrintService {
     final footerMsg = config['footer_msg'] ?? 'Terima Kasih';
 
     final is80 = _paperSize == '80';
-    final maxChars = is80 ? 48 : 32; // Gunakan 32 char untuk mm58 (Font A standar) agar tidak wrapping
+    final maxChars = is80 ? 48 : 32; 
     final printWidth = is80 ? 576 : 384;
 
     final profile = await CapabilityProfile.load();
@@ -194,13 +213,13 @@ class PrintService {
 
     bytes += generator.reset();
     
-    // Logo Toko
+    
     final logoImage = await _getLogo(printWidth);
     if (logoImage != null) {
       bytes += generator.image(logoImage);
     }
     
-    // Header Toko
+    
     if (storeName.isNotEmpty) {
       bytes += generator.text(
         storeName,
@@ -233,7 +252,7 @@ class PrintService {
     
     bytes += generator.hr();
 
-    // Item list
+    
     for (final item in items) {
       bytes += generator.text(item.name);
       final qtyPrice = '${item.qty} x ${formatRupiah(item.price)}';
@@ -245,7 +264,7 @@ class PrintService {
     }
     bytes += generator.hr();
 
-    // Summary
+    
     final totalStr = formatRupiah(total);
     final paidStr = formatRupiah(paid);
     final changeStr = formatRupiah(change);
@@ -269,7 +288,7 @@ class PrintService {
     if (footerMsg.isNotEmpty) {
       bytes += generator.text(footerMsg, styles: const PosStyles(align: PosAlign.center, bold: true));
     }
-    // Kurangi feed agar hemat kertas (jadi feed 1 dari feed 3)
+    
     bytes += generator.feed(1);
 
     final bool result = await PrintBluetoothThermal.writeBytes(bytes);

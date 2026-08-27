@@ -6,8 +6,8 @@ import 'package:dodolanku/features/debt/repositories/debt_repository.dart';
 class DebtNotifier extends AsyncNotifier<List<DebtNote>> {
   @override
   Future<List<DebtNote>> build() async {
-    // BUG-007 fix: tidak perlu watch scannerProvider hanya untuk tunggu DB init.
-    // Gunakan databaseServiceProvider langsung — initDb() bersifat idempotent.
+    
+    
     final dbService = ref.read(databaseServiceProvider);
     await dbService.initDb();
 

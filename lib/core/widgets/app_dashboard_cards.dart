@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// Kartu statistik angka — Transaksi Hari Ini, Antrean Kasir, dll.
+
 class AppStatCard extends StatelessWidget {
   const AppStatCard({
     super.key,
@@ -52,7 +52,7 @@ class AppStatCard extends StatelessWidget {
   }
 }
 
-/// Kartu produk vertikal untuk horizontal scroll list (Produk Terlaris, dll).
+
 class AppProductCard extends StatelessWidget {
   const AppProductCard({
     super.key,

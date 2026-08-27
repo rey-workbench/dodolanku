@@ -1,30 +1,43 @@
 import 'dart:io';
 import 'dart:async';
-import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:http/http.dart' as http;
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dodolanku/core/config/app_config.dart';
+import 'package:dodolanku/core/models/transaction_model.dart';
 import 'package:dodolanku/core/services/network_service.dart';
+import 'package:dodolanku/core/services/turso_service.dart';
 
 import 'package:dodolanku/core/database/database_schema.dart';
 import 'package:dodolanku/core/database/database_migrations.dart';
 import 'package:dodolanku/core/database/database_seeders.dart';
 
-/// Provider utama untuk mengakses [DatabaseService] di seluruh aplikasi.
+
 final databaseServiceProvider = Provider<DatabaseService>((ref) {
   final service = DatabaseService();
   ref.onDispose(() => service.dispose());
   return service;
 });
 
+
+
+
+class SalesDataVersionNotifier extends Notifier<int> {
+  @override
+  int build() => 0;
+
+  void increment() => state++;
+}
+
+final salesDataVersionProvider =
+    NotifierProvider<SalesDataVersionNotifier, int>(SalesDataVersionNotifier.new);
+
 class DatabaseService {
   Database? _db;
   Database? _globalDb;
+  final TursoService _turso = TursoService.instance;
 
   Future<void> initDb() async {
     if (_db != null) return;
@@ -43,7 +56,7 @@ class DatabaseService {
           );
           await File(globalPath).writeAsBytes(bytes, flush: true);
         } catch (e) {
-          // BUG-005 fix: log error agar bisa dideteksi saat debugging
+          
           debugPrint('[DatabaseService] Gagal menyalin global_product.db dari asset: $e');
         }
       }
@@ -63,7 +76,7 @@ class DatabaseService {
         await db.rawQuery('PRAGMA journal_mode = WAL;');
       } catch (_) {}
 
-      // 1. Create tables & indexes from Schema (must run BEFORE migrations)
+      
       for (final query in DatabaseSchema.createTablesQueries) {
         await db.execute(query);
       }
@@ -71,16 +84,16 @@ class DatabaseService {
         await db.execute(query);
       }
 
-      // 2. Run migrations (ALTER TABLE, etc) — tables must exist first
+      
       await DatabaseMigrations.runMigrations(db);
 
-      // 3. Seed default data
+      
       await DatabaseSeeders.runSeeders(db);
 
-      // Only assign the global _db instance when ALL migrations are successfully applied
+      
       _db = db;
 
-      // Inisialisasi pendengar otomatis koneksi internet
+      
       _initAutoNetworkSync();
     } catch (e) {
       throw Exception('Gagal memuat database: $e');
@@ -90,7 +103,7 @@ class DatabaseService {
   void _initAutoNetworkSync() {
     NetworkService.instance.listenConnectionChange((hasConnection) async {
       if (hasConnection) {
-        // Otomatis jalankan sinkronisasi 2 arah saat HP mendapatkan paket data / WiFi
+        
         try {
           await syncMasterProductsFromTurso();
         } catch (_) {}
@@ -98,21 +111,45 @@ class DatabaseService {
     });
   }
 
-  // ─────────────────────────────────────────────
-  // RECEIPT CONFIG
-  // ─────────────────────────────────────────────
+  
+  
+  
+
+  Future<String?> getSetting(String key) async {
+    if (_db == null) return null;
+    final rows = await _db!.query(
+      'app_settings',
+      columns: ['value'],
+      where: 'key = ?',
+      whereArgs: [key],
+    );
+    if (rows.isEmpty) return null;
+    return rows.first['value'] as String?;
+  }
+
+  Future<void> setSetting(String key, String value) async {
+    if (_db == null) return;
+    await _db!.insert(
+      'app_settings',
+      {'key': key, 'value': value},
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+
+  
+  
+  
 
   Future<Map<String, dynamic>> getReceiptConfig() async {
-    if (_db == null) {
-      return {
-        'store_name': 'dodolanku',
-        'store_address': 'Jl. Raya dodolanku No. 1',
-        'store_phone': '',
-        'qris_data': '',
-        'header_msg': '',
-        'footer_msg': 'Terima Kasih',
-      };
-    }
+    final Map<String, dynamic> fallback = {
+      'store_name': DatabaseConfig.defaultStoreName,
+      'store_address': DatabaseConfig.defaultStoreAddress,
+      'store_phone': DatabaseConfig.defaultStorePhone,
+      'qris_data': DatabaseConfig.defaultQrisData,
+      'header_msg': DatabaseConfig.defaultHeaderMsg,
+      'footer_msg': DatabaseConfig.defaultFooterMsg,
+    };
+    if (_db == null) return fallback;
     final rows = await _db!.query(
       'receipt_config',
       columns: [
@@ -125,17 +162,7 @@ class DatabaseService {
       ],
       where: 'id = 1',
     );
-    if (rows.isNotEmpty) {
-      return rows.first;
-    }
-    return {
-      'store_name': 'dodolanku',
-      'store_address': 'Jl. Raya dodolanku No. 1',
-      'store_phone': '',
-      'qris_data': '',
-      'header_msg': '',
-      'footer_msg': 'Terima Kasih',
-    };
+    return rows.isNotEmpty ? rows.first : fallback;
   }
 
   Future<void> updateReceiptConfig({
@@ -158,17 +185,17 @@ class DatabaseService {
     }, conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
-  // ─────────────────────────────────────────────
-  // PRODUCTS
-  // ─────────────────────────────────────────────
+  
+  
+  
 
   Future<Map<String, dynamic>?> getProductDetails(String barcode) async {
-    // BUG-001 fix: guard _db saja, globalDb boleh null secara independent
+    
     if (_db == null) return null;
     final clean = barcode.trim();
     if (clean.isEmpty) return null;
 
-    // Check local db first
+    
     final localRows = await _db!.query(
       'products',
       columns: ['barcode', 'name', 'price', 'stock'],
@@ -179,7 +206,7 @@ class DatabaseService {
       return localRows.first;
     }
 
-    // Check global db if not found (only if available)
+    
     if (_globalDb != null) {
       final globalRows = await _globalDb!.query(
         'products',
@@ -195,51 +222,15 @@ class DatabaseService {
     return null;
   }
 
-  /// Mengirim (push) 1 produk baru secara async ke Turso Cloud tanpa menghambat UI.
-  Future<void> _pushSingleProductToTurso(String barcode, String name) async {
+  
+  Future<void> _tryPushToTurso(String barcode, String name) async {
+    final cleanBc = barcode.trim();
+    final cleanName = name.trim();
+    if (cleanBc.isEmpty || cleanName.isEmpty) return;
     try {
-      final tursoUrl = dotenv.env['TURSO_DATABASE_URL'];
-      final tursoToken = dotenv.env['TURSO_AUTH_TOKEN'];
-      if (tursoUrl == null ||
-          tursoUrl.isEmpty ||
-          tursoToken == null ||
-          tursoToken.isEmpty) {
-        return;
-      }
-
-      final httpUrl =
-          '${tursoUrl.replaceFirst('libsql://', 'https://')}/v2/pipeline';
-      final cleanBc = barcode.trim();
-      final cleanName = name.trim();
-      if (cleanBc.isEmpty || cleanName.isEmpty) return;
-
-      await http
-          .post(
-            Uri.parse(httpUrl),
-            headers: {
-              'Authorization': 'Bearer $tursoToken',
-              'Content-Type': 'application/json',
-            },
-            body: jsonEncode({
-              "requests": [
-                {
-                  "type": "execute",
-                  "stmt": {
-                    "sql":
-                        "INSERT INTO masterproduct (barcode, name) VALUES (?, ?) ON CONFLICT(barcode) DO UPDATE SET name = excluded.name",
-                    "args": [
-                      {"type": "text", "value": cleanBc},
-                      {"type": "text", "value": cleanName},
-                    ],
-                  },
-                },
-                {"type": "close"},
-              ],
-            }),
-          )
-          .timeout(const Duration(seconds: 20));
+      await _turso.pushProduct(cleanBc, cleanName);
     } catch (_) {
-      // Abaikan error jaringan secara silent agar input lokal pengguna tidak terganggu
+      
     }
   }
 
@@ -259,11 +250,11 @@ class DatabaseService {
       'stock': stock,
     }, conflictAlgorithm: ConflictAlgorithm.replace);
 
-    // Otomatis PUSH ke Turso Cloud di background saat user tambah produk baru
-    _pushSingleProductToTurso(cleanBc, cleanName);
+    
+    _tryPushToTurso(cleanBc, cleanName);
   }
 
-  /// Update nama, harga, dan/atau stok produk yang sudah terdaftar.
+  
   Future<void> updatePriceAndStock(
     String barcode, {
     String? name,
@@ -287,13 +278,13 @@ class DatabaseService {
       whereArgs: [cleanBc],
     );
 
-    // Jika nama diperbarui, otomatis update ke Turso Cloud di background
+    
     if (data.containsKey('name')) {
-      _pushSingleProductToTurso(cleanBc, data['name']);
+      _tryPushToTurso(cleanBc, data['name']);
     }
   }
 
-  /// Produk dengan stok <= [threshold], hanya yang sudah dikonfigurasi (price > 0).
+  
   Future<List<Map<String, dynamic>>> getLowStockProducts({
     int threshold = 5,
   }) async {
@@ -319,7 +310,7 @@ class DatabaseService {
     }
   }
 
-  /// Generate kode otomatis untuk produk tanpa barcode (misal NOBC-0001, NOBC-0002).
+  
   Future<String> getNextNonBarcodeCode() async {
     await initDb();
     if (_db == null) return 'NOBC-0001';
@@ -342,12 +333,12 @@ class DatabaseService {
     }
   }
 
-  // ─────────────────────────────────────────────
-  // TRANSACTIONS
-  // ─────────────────────────────────────────────
+  
+  
+  
 
-  /// Simpan transaksi beserta item-itemnya.
-  /// Returns id transaksi yang baru dibuat.
+  
+  
   Future<int> insertTransaction({
     required double totalAmount,
     required String paymentMethod,
@@ -366,7 +357,7 @@ class DatabaseService {
         'payment_method': paymentMethod,
         'amount_paid': amountPaid,
         'change_amount': changeAmount,
-        'status': 'selesai',
+        'status': TransactionModel.statusSelesai,
       });
 
       final batch = txn.batch();
@@ -393,7 +384,7 @@ class DatabaseService {
     });
   }
 
-  /// Daftar transaksi terbaru (newest first).
+  
   Future<List<Map<String, dynamic>>> getTransactions({int limit = 50}) async {
     if (_db == null) return [];
     return await _db!.query(
@@ -412,7 +403,7 @@ class DatabaseService {
     );
   }
 
-  /// Item-item dalam satu transaksi.
+  
   Future<List<Map<String, dynamic>>> getTransactionItems(
     int transactionId,
   ) async {
@@ -433,7 +424,7 @@ class DatabaseService {
     );
   }
 
-  /// Mencari produk berdasarkan nama atau barcode
+  
   Future<List<Map<String, dynamic>>> searchProducts(String query) async {
     if (_db == null) return [];
     final q = '%$query%';
@@ -447,7 +438,7 @@ class DatabaseService {
     );
   }
 
-  /// Menghapus transaksi, opsional mengembalikan stok produk, dan menghapus item
+  
   Future<void> deleteTransaction(int transactionId, {bool restoreStock = true}) async {
     if (_db == null) return;
     
@@ -455,7 +446,7 @@ class DatabaseService {
       final batch = txn.batch();
 
       if (restoreStock) {
-        // 1. Ambil item untuk restore stok
+        
         final items = await txn.query(
           'transaction_items',
           columns: ['barcode', 'qty'],
@@ -463,7 +454,7 @@ class DatabaseService {
           whereArgs: [transactionId],
         );
         
-        // 2. Kembalikan stok
+        
         for (final item in items) {
           final barcode = item['barcode'] as String;
           final qty = item['qty'] as int;
@@ -474,7 +465,7 @@ class DatabaseService {
         }
       }
       
-      // 3. Hapus item dan transaksi
+      
       batch.delete('transaction_items', where: 'transaction_id = ?', whereArgs: [transactionId]);
       batch.delete('transactions', where: 'id = ?', whereArgs: [transactionId]);
       
@@ -482,11 +473,11 @@ class DatabaseService {
     });
   }
 
-  // ─────────────────────────────────────────────
-  // DASHBOARD ANALYTICS
-  // ─────────────────────────────────────────────
+  
+  
+  
 
-  /// Ringkasan dashboard hari ini vs kemarin.
+  
   Future<Map<String, dynamic>> getDashboardStats() async {
     if (_db == null) {
       return {
@@ -505,11 +496,11 @@ class DatabaseService {
         '${yesterday.year}-${yesterday.month.toString().padLeft(2, '0')}-${yesterday.day.toString().padLeft(2, '0')}';
 
     final todayRows = await _db!.rawQuery(
-      "SELECT COALESCE(SUM(total_amount),0) AS total, COUNT(*) AS cnt FROM transactions WHERE created_at LIKE ? AND status='selesai'",
+      "SELECT COALESCE(SUM(total_amount),0) AS total, COUNT(*) AS cnt FROM transactions WHERE created_at LIKE ? AND status='${TransactionModel.statusSelesai}'",
       ['$todayStr%'],
     );
     final yestRows = await _db!.rawQuery(
-      "SELECT COALESCE(SUM(total_amount),0) AS total, COUNT(*) AS cnt FROM transactions WHERE created_at LIKE ? AND status='selesai'",
+      "SELECT COALESCE(SUM(total_amount),0) AS total, COUNT(*) AS cnt FROM transactions WHERE created_at LIKE ? AND status='${TransactionModel.statusSelesai}'",
       ['$yestStr%'],
     );
 
@@ -521,7 +512,7 @@ class DatabaseService {
     };
   }
 
-  /// Produk terlaris berdasarkan total qty terjual.
+  
   Future<List<Map<String, dynamic>>> getTopProducts({int limit = 5}) async {
     if (_db == null) return [];
     return await _db!.rawQuery(
@@ -536,9 +527,9 @@ class DatabaseService {
     );
   }
 
-  // ─────────────────────────────────────────────
-  // DEBT NOTES
-  // ─────────────────────────────────────────────
+  
+  
+  
 
   Future<List<Map<String, dynamic>>> getDebtNotes() async {
     if (_db == null) return [];
@@ -611,156 +602,67 @@ class DatabaseService {
     await _db!.delete('debt_notes', where: 'id = ?', whereArgs: [id]);
   }
 
-  // ─────────────────────────────────────────────
+  
 
-  /// Menyinkronkan data Dua Arah (Two-Way Sync):
-  /// 1. Ambil dari Turso -> Merge ke Lokal HP (yang belum ada di lokal)
-  /// 2. Ambil dari Lokal HP -> Upload & Insert ke Turso (yang belum ada di Turso Cloud)
+  
+  
+  
+  
   Future<int> syncMasterProductsFromTurso() async {
-    final tursoUrl = dotenv.env['TURSO_DATABASE_URL'];
-    final tursoToken = dotenv.env['TURSO_AUTH_TOKEN'];
-
-    if (tursoUrl == null ||
-        tursoUrl.isEmpty ||
-        tursoToken == null ||
-        tursoToken.isEmpty) {
-      // Jika kredensial Turso di .env belum diisi, fallback ke offline sync
+    if (!_turso.isConfigured) {
+      
       return await syncMasterProductsToLocal();
     }
 
-    final httpUrl = tursoUrl.replaceFirst('libsql://', 'https://');
-    final pipelineEndpoint = '$httpUrl/v2/pipeline';
+    final remote = await _turso.pullProducts(); 
+    if (remote.isEmpty || _db == null) return 0;
 
-    // ── ARAH 1: PULL DARI TURSO -> MERGE KE LOKAL ──
-    final response = await http
-        .post(
-          Uri.parse(pipelineEndpoint),
-          headers: {
-            'Authorization': 'Bearer $tursoToken',
-            'Content-Type': 'application/json',
-          },
-          body: jsonEncode({
-            "requests": [
-              {
-                "type": "execute",
-                "stmt": {"sql": "SELECT barcode, name FROM masterproduct"},
-              },
-              {"type": "close"},
-            ],
-          }),
-        )
-        .timeout(const Duration(seconds: 20));
-
-    if (response.statusCode != 200) {
-      throw Exception(
-        'Gagal menghubungi Turso API (${response.statusCode}): ${response.body}',
-      );
-    }
-
-    final data = jsonDecode(response.body);
-    final results = data['results'] as List?;
-    if (results == null || results.isEmpty) return 0;
-
-    final firstResult = results.first;
-    final responseBody = firstResult['response'];
-    final resultObj = responseBody?['result'];
-    final rows = resultObj?['rows'] as List?;
-
-    final tursoBarcodes = <String>{};
+    final tursoBarcodes = remote.map((p) => p['barcode']!).toSet();
     int newFromTursoCount = 0;
 
-    if (rows != null && rows.isNotEmpty && _db != null) {
-      await _db!.transaction((txn) async {
-        final batch = txn.batch();
-        for (final row in rows) {
-          final barcode = row[0]?['value']?.toString().trim();
-          final name = row[1]?['value']?.toString().trim();
-          if (barcode != null &&
-              barcode.isNotEmpty &&
-              name != null &&
-              name.isNotEmpty) {
-            tursoBarcodes.add(barcode);
-            batch.rawInsert(
-              '''
-              INSERT OR IGNORE INTO products (barcode, name, price, stock)
-              VALUES (?, ?, 0.0, 0)
-              ''',
-              [barcode, name],
-            );
-          }
-        }
-        final batchRes = await batch.commit(noResult: false);
-        newFromTursoCount = batchRes.where((r) => r is int && r > 0).length;
-      });
-    }
-
-    // ── ARAH 2: PUSH DARI LOKAL -> MERGE KE TURSO CLOUD ──
-    if (_db != null) {
-      final localProducts = await _db!.query(
-        'products',
-        columns: ['barcode', 'name'],
-        where:
-            'barcode IS NOT NULL AND barcode != "" AND name IS NOT NULL AND name != ""',
-      );
-
-      final toPush = <Map<String, String>>[];
-      for (final p in localProducts) {
-        final barcode = (p['barcode'] as String?)?.trim();
-        final name = (p['name'] as String?)?.trim();
-        if (barcode != null &&
-            barcode.isNotEmpty &&
-            name != null &&
-            name.isNotEmpty) {
-          if (!tursoBarcodes.contains(barcode)) {
-            toPush.add({'barcode': barcode, 'name': name});
-          }
-        }
+    
+    await _db!.transaction((txn) async {
+      final batch = txn.batch();
+      for (final p in remote) {
+        batch.rawInsert(
+          '''
+          INSERT OR IGNORE INTO products (barcode, name, price, stock)
+          VALUES (?, ?, 0.0, 0)
+          ''',
+          [p['barcode'], p['name']],
+        );
       }
+      final batchRes = await batch.commit(noResult: false);
+      newFromTursoCount = batchRes.where((r) => r is int && r > 0).length;
+    });
 
-      if (toPush.isNotEmpty) {
-        // Batch upload ke Turso Cloud (maksimal 200 items per request HTTP)
-        const batchSize = 200;
-        for (var i = 0; i < toPush.length; i += batchSize) {
-          final chunk = toPush.skip(i).take(batchSize).toList();
-          final pushRequests = chunk.map((item) {
-            return {
-              "type": "execute",
-              "stmt": {
-                "sql":
-                    "INSERT OR IGNORE INTO masterproduct (barcode, name) VALUES (?, ?)",
-                "args": [
-                  {"type": "text", "value": item['barcode']},
-                  {"type": "text", "value": item['name']},
-                ],
-              },
-            };
-          }).toList();
-
-          pushRequests.add({"type": "close"});
-
-          await http
-              .post(
-                Uri.parse(pipelineEndpoint),
-                headers: {
-                  'Authorization': 'Bearer $tursoToken',
-                  'Content-Type': 'application/json',
-                },
-                body: jsonEncode({"requests": pushRequests}),
-              )
-              .timeout(const Duration(seconds: 20));
-        }
-      }
+    
+    final localProducts = await _db!.query(
+      'products',
+      columns: ['barcode', 'name'],
+      where:
+          'barcode IS NOT NULL AND barcode != "" AND name IS NOT NULL AND name != ""',
+    );
+    final toPush = localProducts
+        .where((p) => !tursoBarcodes.contains(p['barcode']))
+        .map((p) => {
+              'barcode': p['barcode'] as String,
+              'name': p['name'] as String,
+            })
+        .toList();
+    if (toPush.isNotEmpty) {
+      await _turso.pushProducts(toPush);
     }
 
     return newFromTursoCount;
   }
 
-  /// Menyinkronkan produk dari Global Master DB (Assets) ke Local DB
-  /// Hanya memasukkan (merge) produk dari master yang barcodenya BELUM ada di Local DB.
+  
+  
   Future<int> syncMasterProductsToLocal() async {
     if (_db == null || _globalDb == null) return 0;
 
-    // Ambil semua barcode yang ada di database master
+    
     final globalProducts = await _globalDb!.query(
       'products',
       columns: ['barcode', 'name'],
@@ -770,7 +672,7 @@ class DatabaseService {
 
     int newItemsCount = 0;
 
-    // Gunakan transaksi batch untuk kecepatan tinggi (Insert Ribuan Data dalam beberapa milidetik)
+    
     await _db!.transaction((txn) async {
       final batch = txn.batch();
 
@@ -782,7 +684,7 @@ class DatabaseService {
           continue;
         }
 
-        // INSERT OR IGNORE: memasukkan data HANYA jika barcode belum ada di local db
+        
         batch.rawInsert(
           '''
           INSERT OR IGNORE INTO products (barcode, name, price, stock)
@@ -793,14 +695,14 @@ class DatabaseService {
       }
 
       final results = await batch.commit(noResult: false);
-      // Hitung jumlah baris yang berhasil di-insert (result > 0)
+      
       newItemsCount = results.where((r) => r is int && r > 0).length;
     });
 
     return newItemsCount;
   }
 
-  /// Mendapatkan jumlah item di Master Database Global (global_product.db asset)
+  
   Future<int> getGlobalProductsCount() async {
     await initDb();
     if (_globalDb == null) return 0;
@@ -813,14 +715,14 @@ class DatabaseService {
   }
 
   void dispose() {
-    // BUG-009 fix: jangan dispose singleton NetworkService dari sini,
-    // lifecycle NetworkService dikelola di app-level, bukan per-DatabaseService.
+    
+    
     _db?.close();
     _globalDb?.close();
   }
 
-  /// Memaksa SQLite untuk memindahkan (flush) data dari file WAL ke file .db utama.
-  /// Harus dipanggil sebelum mengcopy atau membackup file .db secara langsung.
+  
+  
   Future<void> forceCheckpoint() async {
     if (_db != null) {
       try {

@@ -27,7 +27,7 @@ class _NavigationShellState extends State<NavigationShell> {
   final List<Widget> _pages = const [
     DashboardPage(),
     OrdersPage(),
-    SizedBox.shrink(), // Placeholder for Scanner FAB
+    SizedBox.shrink(), 
     DebtPage(),
     SettingsPage(),
   ];
@@ -58,7 +58,7 @@ class _NavigationShellState extends State<NavigationShell> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      extendBody: true, // Keep body behind the bottom nav bar notch
+      extendBody: true, 
       body: IndexedStack(
         index: _currentIndex,
         children: _pages,
@@ -67,7 +67,7 @@ class _NavigationShellState extends State<NavigationShell> {
         tag: 'scan_fab',
         child: FloatingActionButton(
           onPressed: () => _onTabSelected(2),
-          heroTag: null, // Disable internal Hero
+          heroTag: null, 
           backgroundColor: Theme.of(context).colorScheme.primary,
           foregroundColor: Colors.white,
           shape: const CircleBorder(),
@@ -94,7 +94,7 @@ class _NavigationShellState extends State<NavigationShell> {
             children: [
             Expanded(child: _buildTabItem(icon: Icons.home_filled, label: 'Beranda', index: 0)),
             Expanded(child: _buildTabItem(icon: Icons.receipt_long_outlined, label: 'Riwayat', index: 1)),
-            const SizedBox(width: 60), // Spacer for central FAB
+            const SizedBox(width: 60), 
             Expanded(child: _buildTabItem(icon: Icons.assignment_outlined, label: 'Hutang', index: 3)),
             Expanded(child: _buildTabItem(icon: Icons.more_horiz_outlined, label: 'Lainnya', index: 4)),
           ],

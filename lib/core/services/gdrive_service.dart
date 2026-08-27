@@ -20,7 +20,7 @@ class GoogleAuthClient extends http.BaseClient {
   }
 
   @override
-  // BUG-002 fix: tutup _client agar tidak ada connection leak
+  
   void close() {
     _client.close();
     super.close();
@@ -49,12 +49,12 @@ class GDriveService {
     await _googleSignIn.signOut();
   }
 
-  /// Auto-backup silent yang hanya berjalan jika pengguna sudah pernah login sebelumnya
+  
   static Future<void> uploadBackupSilently() async {
     try {
-      // Gunakan silent login, JANGAN memunculkan popup (jangan panggil signIn())
+      
       final account = await _googleSignIn.signInSilently();
-      if (account == null) return; // Belum pernah login, abaikan backup otomatis
+      if (account == null) return; 
 
       final authHeaders = await account.authHeaders;
       final client = GoogleAuthClient(authHeaders);
@@ -65,7 +65,7 @@ class GDriveService {
         final file = File(join(dbPath, DatabaseConfig.localDbName));
         if (!await file.exists()) return;
 
-        // Cari file backup lama
+        
         final fileList = await driveApi.files.list(
           spaces: 'appDataFolder',
           q: "name = 'dodolanku.db'",
@@ -97,7 +97,7 @@ class GDriveService {
     }
   }
 
-  /// Upload database SQLite lokal ke folder tersembunyi Google Drive (appDataFolder)
+  
   static Future<String?> uploadBackup() async {
     try {
       var account = await currentUser();
@@ -105,7 +105,7 @@ class GDriveService {
       if (account == null) return 'Gagal login ke akun Google.';
 
       final authHeaders = await account.authHeaders;
-      // BUG-002 fix: gunakan try/finally agar client selalu di-close
+      
       final client = GoogleAuthClient(authHeaders);
       try {
         final driveApi = drive.DriveApi(client);
@@ -114,7 +114,7 @@ class GDriveService {
         final file = File(join(dbPath, DatabaseConfig.localDbName));
         if (!await file.exists()) return 'File database lokal (${DatabaseConfig.localDbName}) tidak ditemukan.';
 
-        // Cari file backup lama
+        
         final fileList = await driveApi.files.list(
           spaces: 'appDataFolder',
           q: "name = 'dodolanku.db'",
@@ -123,7 +123,7 @@ class GDriveService {
         final media = drive.Media(file.openRead(), file.lengthSync());
 
         if (fileList.files != null && fileList.files!.isNotEmpty) {
-          // Update file lama yang sudah ada
+          
           final fileId = fileList.files!.first.id!;
           await driveApi.files.update(
             drive.File(),
@@ -131,7 +131,7 @@ class GDriveService {
             uploadMedia: media,
           );
         } else {
-          // Buat file baru di appDataFolder
+          
           final driveFile = drive.File()
             ..name = 'dodolanku.db'
             ..parents = ['appDataFolder'];
@@ -140,7 +140,7 @@ class GDriveService {
             uploadMedia: media,
           );
         }
-        return null; // Null means success
+        return null; 
       } finally {
         client.close();
       }
@@ -150,8 +150,8 @@ class GDriveService {
     }
   }
 
-  /// Download & pulihkan database SQLite dari Google Drive ke HP.
-  /// Returns true jika berhasil. Caller WAJIB reinit DatabaseService setelah ini.
+  
+  
   static Future<bool> restoreBackup({Future<void> Function()? onBeforeOverwrite}) async {
     try {
       var account = await currentUser();
@@ -159,7 +159,7 @@ class GDriveService {
       if (account == null) return false;
 
       final authHeaders = await account.authHeaders;
-      // BUG-002 fix: gunakan try/finally agar client selalu di-close
+      
       final client = GoogleAuthClient(authHeaders);
       try {
         final driveApi = drive.DriveApi(client);
@@ -184,16 +184,16 @@ class GDriveService {
         await for (final data in fileMedia.stream) {
           dataBytes.addAll(data);
         }
-        // Tulis ke file temp dulu
+        
         final tmpFile = File('${localFile.path}.tmp');
         await tmpFile.writeAsBytes(dataBytes, flush: true);
         
-        // Callback sebelum kita benar-benar menimpa file aslinya
+        
         if (onBeforeOverwrite != null) {
           await onBeforeOverwrite();
         }
         
-        // Hapus file lama dan file WAL/SHM jika ada
+        
         if (await localFile.exists()) await localFile.delete();
         final walFile = File('${localFile.path}-wal');
         if (await walFile.exists()) await walFile.delete();

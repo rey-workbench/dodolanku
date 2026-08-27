@@ -1,4 +1,7 @@
 class TransactionModel {
+  
+  static const String statusSelesai = 'selesai';
+
   final int? id;
   final String createdAt;
   final double totalAmount;

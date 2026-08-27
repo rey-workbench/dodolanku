@@ -1,5 +1,5 @@
 name: dodolanku
-description: "A new Flutter project."
+description: "Aplikasi Kasir POS (Point of Sale) sederhana untuk retail kecil."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
@@ -54,6 +54,7 @@ dependencies:
   url_launcher: ^6.3.2
   google_sign_in: ^6.2.2
   googleapis: ^13.2.0
+  workmanager: ^0.10.9
 
 dev_dependencies:
   flutter_test:
@@ -81,7 +82,6 @@ flutter:
   uses-material-design: true
 
   assets:
-    - .env
     - assets/global_product.db
     - assets/audio/scan_beep.aac
     - assets/logo.svg

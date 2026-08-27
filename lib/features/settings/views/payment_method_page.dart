@@ -234,7 +234,7 @@ class _PaymentMethodPageState extends ConsumerState<PaymentMethodPage> {
           : ListView(
               padding: const EdgeInsets.all(16),
               children: [
-                // Cash
+                
                 AppCard(
                   padding: const EdgeInsets.all(16),
                   child: Row(
@@ -283,7 +283,7 @@ class _PaymentMethodPageState extends ConsumerState<PaymentMethodPage> {
                 ),
                 const SizedBox(height: 16),
 
-                // QRIS
+                
                 AppCard(
                   padding: const EdgeInsets.all(16),
                   child: Column(

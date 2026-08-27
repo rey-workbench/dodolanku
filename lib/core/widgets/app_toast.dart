@@ -11,7 +11,7 @@ class AppToast {
     final scaffoldMessenger = ScaffoldMessenger.of(context);
     final theme = Theme.of(context);
 
-    // Hapus SnackBar aktif agar tidak menumpuk
+    
     scaffoldMessenger.clearSnackBars();
 
     scaffoldMessenger.showSnackBar(
@@ -36,7 +36,7 @@ class AppToast {
             ),
           ],
         ),
-        // Gaya Floating premium di bagian bawah layar
+        
         behavior: SnackBarBehavior.floating,
         backgroundColor: Colors.white,
         elevation: 6,

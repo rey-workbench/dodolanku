@@ -1,14 +1,15 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dodolanku/core/database_service.dart';
 import 'package:dodolanku/core/models/product_model.dart';
+import 'package:dodolanku/core/services/print_service.dart';
 import 'package:dodolanku/core/models/transaction_model.dart';
 import 'package:dodolanku/features/scanner/models/cart_item_model.dart';
 import 'package:dodolanku/features/scanner/repositories/product_repository.dart';
 import 'package:dodolanku/features/orders/repositories/transaction_repository.dart';
 
-// ─────────────────────────────────────────────
-// STATE
-// ─────────────────────────────────────────────
+
+
+
 
 class ScannerState {
   final bool isLoading;
@@ -19,7 +20,7 @@ class ScannerState {
   final List<ScanHistoryItem> history;
   final bool isCameraActive;
 
-  // Cart
+  
   final List<CartItem> cart;
   final bool checkoutSuccess;
 
@@ -63,13 +64,14 @@ class ScannerState {
   }
 }
 
-// ─────────────────────────────────────────────
-// NOTIFIER (CONTROLLER)
-// ─────────────────────────────────────────────
+
+
+
 
 class ScannerNotifier extends Notifier<ScannerState> {
   ProductRepository get _productRepo => ref.read(productRepositoryProvider);
-  TransactionRepository get _transactionRepo => ref.read(transactionRepositoryProvider);
+  TransactionRepository get _transactionRepo =>
+      ref.read(transactionRepositoryProvider);
 
   @override
   ScannerState build() {
@@ -81,6 +83,7 @@ class ScannerNotifier extends Notifier<ScannerState> {
     try {
       final dbService = ref.read(databaseServiceProvider);
       await dbService.initDb();
+      await PrintService.instance.loadSettings();
       state = state.copyWith(isLoading: false);
     } catch (e) {
       state = state.copyWith(
@@ -95,7 +98,7 @@ class ScannerNotifier extends Notifier<ScannerState> {
     state = state.copyWith(isCameraActive: active);
   }
 
-  // ── Barcode Lookup ──────────────────────────
+  
 
   Future<bool> lookupBarcode(String barcode, {bool isUpdate = false}) async {
     final clean = barcode.trim();
@@ -108,7 +111,7 @@ class ScannerNotifier extends Notifier<ScannerState> {
       final price = product.price;
       final stock = product.stock;
 
-      // Update info display
+      
       final newItem = ScanHistoryItem(
         barcode: clean,
         name: name,
@@ -121,7 +124,7 @@ class ScannerNotifier extends Notifier<ScannerState> {
         newHistory.insert(0, newItem);
       }
 
-      // Add to cart
+      
       addToCart(barcode: clean, name: name, price: price, increment: !isUpdate);
 
       state = state.copyWith(
@@ -162,6 +165,7 @@ class ScannerNotifier extends Notifier<ScannerState> {
       stock: stock,
     );
     await _productRepo.insertProduct(product);
+    ref.read(salesDataVersionProvider.notifier).increment();
     await lookupBarcode(barcode, isUpdate: true);
   }
 
@@ -171,12 +175,18 @@ class ScannerNotifier extends Notifier<ScannerState> {
     required int stock,
   }) async {
     await _productRepo.updatePriceAndStock(barcode, price: price, stock: stock);
+    ref.read(salesDataVersionProvider.notifier).increment();
     await lookupBarcode(barcode, isUpdate: true);
   }
 
-  // ── Cart Management ─────────────────────────
+  
 
-  void addToCart({required String barcode, required String name, required double price, bool increment = true}) {
+  void addToCart({
+    required String barcode,
+    required String name,
+    required double price,
+    bool increment = true,
+  }) {
     final cart = List<CartItem>.from(state.cart);
     final idx = cart.indexWhere((c) => c.barcode == barcode);
     if (idx >= 0) {
@@ -220,10 +230,10 @@ class ScannerNotifier extends Notifier<ScannerState> {
     );
   }
 
-  // ── Checkout ────────────────────────────────
+  
 
-  /// Melakukan checkout dan mengembalikan [CheckoutResult] berisi data
-  /// yang dibutuhkan UI untuk menawarkan cetak struk.
+  
+  
   Future<CheckoutResult> checkout({
     required String paymentMethod,
     required double amountPaid,
@@ -238,10 +248,16 @@ class ScannerNotifier extends Notifier<ScannerState> {
       );
     }
 
-    // BUG-004 fix: validasi stok sebelum proses checkout
+    
+    
     for (final cartItem in state.cart) {
       final product = await _productRepo.getProductDetails(cartItem.barcode);
-      if (product != null && product.stock > 0 && cartItem.qty > product.stock) {
+      if (product == null) {
+        throw Exception(
+          'Produk ${cartItem.name} tidak terdaftar di database. Daftarkan dulu sebelum checkout.',
+        );
+      }
+      if (cartItem.qty > product.stock) {
         throw Exception(
           'Stok ${cartItem.name} tidak mencukupi (tersisa ${product.stock}, diminta ${cartItem.qty})',
         );
@@ -253,13 +269,15 @@ class ScannerNotifier extends Notifier<ScannerState> {
     final cartSnapshot = List<CartItem>.from(state.cart);
 
     final items = state.cart
-        .map((c) => TransactionItemModel(
-              barcode: c.barcode,
-              productName: c.name,
-              price: c.price,
-              qty: c.qty,
-              subtotal: c.subtotal,
-            ))
+        .map(
+          (c) => TransactionItemModel(
+            barcode: c.barcode,
+            productName: c.name,
+            price: c.price,
+            qty: c.qty,
+            subtotal: c.subtotal,
+          ),
+        )
         .toList();
 
     await _transactionRepo.insertTransaction(
@@ -269,6 +287,8 @@ class ScannerNotifier extends Notifier<ScannerState> {
       changeAmount: change,
       items: items,
     );
+    
+    ref.read(salesDataVersionProvider.notifier).increment();
 
     state = state.copyWith(
       cart: [],
@@ -290,9 +310,9 @@ class ScannerNotifier extends Notifier<ScannerState> {
   }
 }
 
-// ─────────────────────────────────────────────
-// CHECKOUT RESULT
-// ─────────────────────────────────────────────
+
+
+
 
 class CheckoutResult {
   final double total;

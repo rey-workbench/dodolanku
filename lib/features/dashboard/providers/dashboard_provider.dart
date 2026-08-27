@@ -1,24 +1,19 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:dodolanku/core/database_service.dart';
 import 'package:dodolanku/features/dashboard/models/dashboard_stats_model.dart';
-import 'package:dodolanku/features/scanner/providers/scanner_provider.dart';
 import 'package:dodolanku/features/scanner/repositories/product_repository.dart';
 import 'package:dodolanku/features/orders/repositories/transaction_repository.dart';
 
 class DashboardNotifier extends AsyncNotifier<DashboardData> {
   @override
   Future<DashboardData> build() async {
-    // Re-fetch statistics when checkout completes or DB updates
-    final scannerState = ref.watch(scannerProvider);
-    if (scannerState.isLoading) {
-      return DashboardData(
-        totalToday: 0.0,
-        countToday: 0,
-        totalYesterday: 0.0,
-        countYesterday: 0,
-        topProducts: [],
-        lowStockProducts: [],
-      );
-    }
+    
+    
+    ref.watch(salesDataVersionProvider);
+
+    
+    final dbService = ref.read(databaseServiceProvider);
+    await dbService.initDb();
 
     final productRepo = ref.read(productRepositoryProvider);
     final txRepo = ref.read(transactionRepositoryProvider);

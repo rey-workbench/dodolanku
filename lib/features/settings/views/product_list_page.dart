@@ -74,7 +74,7 @@ class _ProductListPageState extends ConsumerState<ProductListPage> {
         ));
         if (mounted) {
           AppToast.show(context, message: 'Data produk berhasil diperbarui');
-          _loadAllProducts(); // Refresh
+          _loadAllProducts(); 
         }
       },
     );
@@ -106,7 +106,7 @@ class _ProductListPageState extends ConsumerState<ProductListPage> {
                 ),
               ),
               onChanged: (val) {
-                // Debounce simple
+                
                 Future.delayed(const Duration(milliseconds: 300), () {
                   if (val == _searchController.text) {
                     _loadAllProducts();

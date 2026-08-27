@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// CircleAvatar menampilkan inisial huruf pertama dari [name].
+
 class AppInitialAvatar extends StatelessWidget {
   const AppInitialAvatar({
     super.key,
@@ -28,7 +28,7 @@ class AppInitialAvatar extends StatelessWidget {
   }
 }
 
-/// CircleAvatar menampilkan icon — histori scan, profil pengaturan, dll.
+
 class AppIconAvatar extends StatelessWidget {
   const AppIconAvatar({
     super.key,

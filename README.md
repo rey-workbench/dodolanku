@@ -1,6 +1,6 @@
-# Dodolanku (YourCashier)
+# Dodolanku
 
-Aplikasi Kasir POS (Point of Sale) Sederhana utk Retail Kecil berbasis Flutter.
+Aplikasi Kasir POS (Point of Sale) sederhana untuk retail kecil berbasis Flutter.
 
 ## Build APK (Release & Size Optimized)
 

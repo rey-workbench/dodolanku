@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// Section pengaturan berlabel header abu + Card berisi daftar tile.
+
 class AppSettingsSection extends StatelessWidget {
   const AppSettingsSection({
     super.key,
@@ -29,7 +29,7 @@ class AppSettingsSection extends StatelessWidget {
   }
 }
 
-/// Baris tile pengaturan dengan icon, judul, subtitle opsional, panah kanan.
+
 class AppSettingsTile extends StatelessWidget {
   const AppSettingsTile({
     super.key,

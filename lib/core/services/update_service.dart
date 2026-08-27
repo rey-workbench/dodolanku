@@ -1,8 +1,11 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:dodolanku/core/database_service.dart';
+import 'package:dodolanku/core/services/gdrive_service.dart';
 import 'package:dodolanku/core/widgets/app_modal.dart';
 
 class UpdateService {
@@ -23,11 +26,11 @@ class UpdateService {
       final packageInfo = await PackageInfo.fromPlatform();
       final currentVersion = packageInfo.version;
 
-      // Ponytail mode: simple string check. If not identical, it's an update.
-      if (latestVersion.isNotEmpty && latestVersion != currentVersion) {
+      
+      if (latestVersion.isNotEmpty && _isNewer(latestVersion, currentVersion)) {
         if (!context.mounted) return;
 
-        // Find APK url
+        
         String? apkUrl;
         final assets = data['assets'] as List?;
         if (assets != null) {
@@ -35,10 +38,10 @@ class UpdateService {
             final name = asset['name'].toString().toLowerCase();
             if (name.endsWith('.apk') && name.contains('arm64')) {
               apkUrl = asset['browser_download_url'];
-              break; // Prefer arm64 if multiple, or just take the first apk
+              break; 
             }
           }
-          // Fallback to any apk
+          
           if (apkUrl == null) {
             for (final asset in assets) {
               if (asset['name'].toString().toLowerCase().endsWith('.apk')) {
@@ -57,6 +60,7 @@ class UpdateService {
           message: 'Versi baru aplikasi telah dirilis!\n\nCatatan Rilis:\n${data['name']}\n\nApakah Anda ingin mengunduhnya sekarang?',
           confirmLabel: 'Update Sekarang',
           onConfirm: () async {
+            await _backupBeforeUpdate(context);
             try {
               final url = Uri.parse(apkUrl!);
               await launchUrl(url, mode: LaunchMode.externalApplication);
@@ -70,7 +74,30 @@ class UpdateService {
         );
       }
     } catch (e) {
-      // Silently ignore update check errors
+      debugPrint('[UpdateService] Check update error: $e');
     }
+  }
+
+  static Future<void> _backupBeforeUpdate(BuildContext context) async {
+    try {
+      final container = ProviderScope.containerOf(context);
+      final dbService = container.read(databaseServiceProvider);
+      await dbService.initDb();
+      await dbService.forceCheckpoint();
+    } catch (_) {}
+    await GDriveService.uploadBackupSilently();
+  }
+
+  
+  static bool _isNewer(String a, String b) {
+    final av = a.split('.').map((s) => int.tryParse(s) ?? 0).toList();
+    final bv = b.split('.').map((s) => int.tryParse(s) ?? 0).toList();
+    final len = av.length > bv.length ? av.length : bv.length;
+    for (var i = 0; i < len; i++) {
+      final x = i < av.length ? av[i] : 0;
+      final y = i < bv.length ? bv[i] : 0;
+      if (x != y) return x > y;
+    }
+    return false;
   }
 }

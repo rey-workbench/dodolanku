@@ -2,12 +2,20 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'core/theme.dart';
+import 'core/database_service.dart';
+import 'background_tasks.dart';
 import 'features/navigation/views/navigation_shell.dart';
 import 'core/services/gdrive_service.dart';
 
-/// Provider untuk menjembatani backup otomatis secara silent
 final autoBackupProvider = Provider<VoidCallback>((ref) {
-  return () => GDriveService.uploadBackupSilently();
+  return () async {
+    try {
+      final db = ref.read(databaseServiceProvider);
+      await db.initDb();
+      await db.forceCheckpoint();
+    } catch (_) {}
+    await GDriveService.uploadBackupSilently();
+  };
 });
 
 void main() async {
@@ -15,6 +23,8 @@ void main() async {
   try {
     await dotenv.load(fileName: ".env");
   } catch (_) {}
+
+  BackgroundTasks.init();
 
   runApp(
     const ProviderScope(
@@ -35,7 +45,7 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    // Jalankan auto backup pertama kali dibuka
+    
     _triggerBackup();
   }
 
@@ -59,7 +69,7 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'dodolanku Barcode Scanner',
+      title: 'dodolanku',
       theme: AppTheme.lightTheme,
       home: const NavigationShell(),
       debugShowCheckedModeBanner: false,

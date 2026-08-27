@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 
-/// Chip kecil berlatar abu untuk menampilkan info ringkas (Harga, Stok, dll).
-///
-/// Contoh:
-/// ```dart
-/// AppInfoBadge(label: 'Harga: Rp 15.000')
-/// AppInfoBadge(label: 'Stok: 50 pcs', color: Colors.green)
-/// ```
+
+
+
+
+
+
+
 class AppInfoBadge extends StatelessWidget {
   const AppInfoBadge({
     super.key,
@@ -36,13 +36,13 @@ class AppInfoBadge extends StatelessWidget {
   }
 }
 
-/// Badge status berwarna dengan background transparan.
-///
-/// Contoh:
-/// ```dart
-/// AppStatusBadge(label: 'Siap', color: Colors.green)
-/// AppStatusBadge(label: 'Diproses', color: Colors.orange)
-/// ```
+
+
+
+
+
+
+
 class AppStatusBadge extends StatelessWidget {
   const AppStatusBadge({
     super.key,

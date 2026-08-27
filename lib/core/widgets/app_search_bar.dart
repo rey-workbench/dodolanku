@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// TextField pencarian standar — putih, ikon search kiri.
+
 class AppSearchBar extends StatelessWidget {
   const AppSearchBar({
     super.key,

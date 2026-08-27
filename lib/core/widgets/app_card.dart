@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 
-/// Card flat putih dengan border abu tipis — pengganti standar Card di seluruh app.
-///
-/// Contoh:
-/// ```dart
-/// AppCard(child: Text('Konten'))
-/// AppCard(padding: EdgeInsets.all(20), onTap: () {}, child: Column(...))
-/// ```
+
+
+
+
+
+
+
 class AppCard extends StatelessWidget {
   const AppCard({
     super.key,
@@ -39,26 +39,26 @@ class AppCard extends StatelessWidget {
   }
 }
 
-/// Card peringatan dengan icon kiri, judul + subtitle tengah, action kanan.
-///
-/// Contoh:
-/// ```dart
-/// AppAlertCard(
-///   icon: Icons.warning_amber_rounded,
-///   title: 'Beras Setra Ramos 5kg',
-///   subtitle: 'Stok kosong',
-///   color: Colors.red,
-///   actionLabel: 'Pesan Lagi',
-///   onAction: () {},
-/// )
-/// ```
+
+
+
+
+
+
+
+
+
+
+
+
+
 class AppAlertCard extends StatelessWidget {
   const AppAlertCard({
     super.key,
     required this.icon,
     required this.title,
     this.subtitle,
-    this.color = const Color(0xFFD97706), // Gunakan Amber/Oranye hangat sebagai warna warning default
+    this.color = const Color(0xFFD97706), 
     this.actionLabel,
     this.onAction,
     this.margin,

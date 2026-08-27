@@ -35,19 +35,19 @@ class _AppViewfinderPainter extends CustomPainter {
 
     const length = 20.0;
 
-    // Top-Left corner
+    
     canvas.drawLine(const Offset(0, 0), const Offset(length, 0), paint);
     canvas.drawLine(const Offset(0, 0), const Offset(0, length), paint);
 
-    // Top-Right corner
+    
     canvas.drawLine(Offset(size.width, 0), Offset(size.width - length, 0), paint);
     canvas.drawLine(Offset(size.width, 0), Offset(size.width, length), paint);
 
-    // Bottom-Left corner
+    
     canvas.drawLine(Offset(0, size.height), Offset(length, size.height), paint);
     canvas.drawLine(Offset(0, size.height), Offset(0, size.height - length), paint);
 
-    // Bottom-Right corner
+    
     canvas.drawLine(Offset(size.width, size.height), Offset(size.width - length, size.height), paint);
     canvas.drawLine(Offset(size.width, size.height), Offset(size.width, size.height - length), paint);
   }

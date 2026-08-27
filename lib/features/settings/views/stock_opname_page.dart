@@ -111,7 +111,7 @@ class _StockOpnamePageState extends ConsumerState<StockOpnamePage> {
               },
             ),
 
-            // Manual Barcode Input & Add Non-Barcode
+            
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
               child: Row(
@@ -165,7 +165,7 @@ class _StockOpnamePageState extends ConsumerState<StockOpnamePage> {
               ),
             ),
 
-            // History Header
+            
             const Padding(
               padding: EdgeInsets.symmetric(horizontal: 16),
               child: Row(
@@ -181,7 +181,7 @@ class _StockOpnamePageState extends ConsumerState<StockOpnamePage> {
             ),
             const SizedBox(height: 8),
 
-            // History List
+            
             Expanded(
               child: _sessionHistory.isEmpty
                   ? Center(

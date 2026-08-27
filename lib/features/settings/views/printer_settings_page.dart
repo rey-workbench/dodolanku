@@ -105,7 +105,7 @@ class _PrinterSettingsPageState extends ConsumerState<PrinterSettingsPage> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          // Auto print toggle
+          
           AppCard(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: Row(
@@ -140,7 +140,7 @@ class _PrinterSettingsPageState extends ConsumerState<PrinterSettingsPage> {
           ),
           const SizedBox(height: 16),
 
-          // Connection status
+          
           AppCard(
             padding: const EdgeInsets.all(16),
             child: Column(
@@ -218,14 +218,14 @@ class _PrinterSettingsPageState extends ConsumerState<PrinterSettingsPage> {
           ),
           const SizedBox(height: 20),
 
-          // Printer Bluetooth List Header
+          
           const Text(
             'Printer Tersedia (Paired)',
             style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.grey),
           ),
           const SizedBox(height: 8),
 
-          // Devices list
+          
           if (_isScanning)
             const Center(
               child: Padding(

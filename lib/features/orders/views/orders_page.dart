@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:dodolanku/core/database_service.dart';
 import 'package:dodolanku/features/orders/providers/orders_provider.dart';
 import 'package:dodolanku/core/utils/currency_formatter.dart';
 import 'package:dodolanku/core/widgets/app_widgets.dart';
@@ -135,7 +136,7 @@ class OrdersPage extends ConsumerWidget {
               width: double.infinity,
               child: OutlinedButton.icon(
                 onPressed: () {
-                  Navigator.pop(context); // Tutup dialog detail
+                  Navigator.pop(context); 
 
                   final itemListStr = tx.items
                       .map(
@@ -173,7 +174,8 @@ class OrdersPage extends ConsumerWidget {
                               tx.transaction.id!,
                               restoreStock: false,
                             );
-                            ref.invalidate(ordersProvider); // Refresh daftar
+                            ref.invalidate(ordersProvider); 
+                            ref.read(salesDataVersionProvider.notifier).increment(); 
                             if (context.mounted) {
                               AppToast.show(
                                 context,
@@ -194,7 +196,8 @@ class OrdersPage extends ConsumerWidget {
                               tx.transaction.id!,
                               restoreStock: true,
                             );
-                            ref.invalidate(ordersProvider); // Refresh daftar
+                            ref.invalidate(ordersProvider); 
+                            ref.read(salesDataVersionProvider.notifier).increment(); 
                             if (context.mounted) {
                               AppToast.show(
                                 context,

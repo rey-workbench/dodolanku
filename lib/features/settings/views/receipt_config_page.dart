@@ -123,7 +123,7 @@ class _ReceiptConfigPageState extends ConsumerState<ReceiptConfigPage> {
                         ),
                         const SizedBox(height: 16),
 
-                        // Nama Toko
+                        
                         const Text(
                           'Nama Toko',
                           style: TextStyle(
@@ -140,7 +140,7 @@ class _ReceiptConfigPageState extends ConsumerState<ReceiptConfigPage> {
                         ),
                         const SizedBox(height: 16),
 
-                        // Alamat Toko
+                        
                         const Text(
                           'Alamat Toko',
                           style: TextStyle(
@@ -160,7 +160,7 @@ class _ReceiptConfigPageState extends ConsumerState<ReceiptConfigPage> {
                         ),
                         const SizedBox(height: 16),
 
-                        // Nomor HP
+                        
                         const Text(
                           'Nomor HP',
                           style: TextStyle(
@@ -178,7 +178,7 @@ class _ReceiptConfigPageState extends ConsumerState<ReceiptConfigPage> {
                         ),
                         const SizedBox(height: 16),
 
-                        // Ukuran Kertas
+                        
                         const Text(
                           'Ukuran Kertas Thermal',
                           style: TextStyle(
@@ -213,7 +213,7 @@ class _ReceiptConfigPageState extends ConsumerState<ReceiptConfigPage> {
                         ),
                         const SizedBox(height: 16),
 
-                        // Pesan Header (Opsional)
+                        
                         const Text(
                           'Pesan Header (Opsional)',
                           style: TextStyle(
@@ -232,7 +232,7 @@ class _ReceiptConfigPageState extends ConsumerState<ReceiptConfigPage> {
                         ),
                         const SizedBox(height: 16),
 
-                        // Pesan Footer
+                        
                         const Text(
                           'Pesan Footer',
                           style: TextStyle(
@@ -257,7 +257,7 @@ class _ReceiptConfigPageState extends ConsumerState<ReceiptConfigPage> {
                   ),
                   const SizedBox(height: 16),
 
-                  // Info Lock Footer
+                  
                   AppCard(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 16,

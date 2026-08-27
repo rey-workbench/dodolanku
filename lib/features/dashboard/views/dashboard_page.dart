@@ -89,7 +89,7 @@ class DashboardPage extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Header
+                  
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -167,11 +167,11 @@ class DashboardPage extends ConsumerWidget {
                   ),
                   const SizedBox(height: 24),
 
-                  // Total Earnings Banner
+                  
                   Container(
                     padding: const EdgeInsets.all(24),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF0F172A), // Premium Dark Slate (slate-900)
+                      color: const Color(0xFF0F172A), 
                       borderRadius: BorderRadius.circular(24),
                     ),
                     child: Row(
@@ -233,7 +233,7 @@ class DashboardPage extends ConsumerWidget {
                   ),
                   const SizedBox(height: 20),
 
-                  // Stats
+                  
                   Row(
                     children: [
                       Expanded(
@@ -251,7 +251,7 @@ class DashboardPage extends ConsumerWidget {
                           title: 'Total Omzet Kemarin',
                           count: 'Rp ${formatRupiah(data.totalYesterday)}',
                           subtext: 'Bandingkan dengan hari ini',
-                          color: const Color(0xFF64748B), // Neutral Slate (slate-500)
+                          color: const Color(0xFF64748B), 
                           icon: Icons.analytics_outlined,
                         ),
                       ),
@@ -259,7 +259,7 @@ class DashboardPage extends ConsumerWidget {
                   ),
                   const SizedBox(height: 28),
 
-                  // Popular Products
+                  
                   AppSectionHeader(title: 'Produk Terlaris', onAction: () {}),
                   const SizedBox(height: 16),
                   if (data.topProducts.isEmpty)
@@ -300,7 +300,7 @@ class DashboardPage extends ConsumerWidget {
                     ),
                   const SizedBox(height: 28),
 
-                  // Out of Stock / Low Stock
+                  
                   AppSectionHeader(title: 'Stok Hampir Habis', onAction: () {}),
                   const SizedBox(height: 16),
                   if (data.totalProducts == 0)

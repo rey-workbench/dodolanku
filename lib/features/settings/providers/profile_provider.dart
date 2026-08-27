@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:dodolanku/core/config/app_config.dart';
 import 'package:dodolanku/features/settings/repositories/settings_repository.dart';
 
 @immutable
@@ -32,8 +33,8 @@ class ProfileNotifier extends Notifier<ProfileState> {
   ProfileState build() {
     Future.microtask(() => loadProfile());
     return const ProfileState(
-      storeName: 'dodolanku',
-      storeAddress: 'Jl. Raya dodolanku No. 1',
+      storeName: DatabaseConfig.defaultStoreName,
+      storeAddress: DatabaseConfig.defaultStoreAddress,
       isLoading: true,
     );
   }
@@ -43,8 +44,8 @@ class ProfileNotifier extends Notifier<ProfileState> {
     final settingsRepo = ref.read(settingsRepositoryProvider);
     final config = await settingsRepo.getReceiptConfig();
     state = ProfileState(
-      storeName: config['store_name'] ?? 'dodolanku',
-      storeAddress: config['store_address'] ?? 'Jl. Raya dodolanku No. 1',
+      storeName: config['store_name'] ?? DatabaseConfig.defaultStoreName,
+      storeAddress: config['store_address'] ?? DatabaseConfig.defaultStoreAddress,
       isLoading: false,
     );
   }

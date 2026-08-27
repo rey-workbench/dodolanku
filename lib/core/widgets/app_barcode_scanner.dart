@@ -114,7 +114,7 @@ class _AppBarcodeScannerState extends State<AppBarcodeScanner>
                             onDetect: (capture) {
                               if (!widget.isScanning) return;
 
-                              // Cooldown 1.5 detik antar scan
+                              
                               if (_lastScanTime != null &&
                                   DateTime.now()
                                           .difference(_lastScanTime!)
@@ -135,7 +135,7 @@ class _AppBarcodeScannerState extends State<AppBarcodeScanner>
                             },
                           ),
                         ),
-                        // Dark semi-transparent overlay around the scanner box
+                        
                         Container(color: Colors.black.withValues(alpha: 0.4)),
                         const AppScannerViewfinder(),
                       ],

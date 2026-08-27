@@ -1,3 +1,6 @@
+import 'package:dodolanku/core/config/app_config.dart';
+import 'package:dodolanku/core/models/transaction_model.dart';
+
 class DatabaseSchema {
   static const List<String> createTablesQueries = [
     '''
@@ -16,7 +19,7 @@ class DatabaseSchema {
       payment_method  TEXT DEFAULT 'tunai',
       amount_paid     REAL DEFAULT 0,
       change_amount   REAL DEFAULT 0,
-      status          TEXT DEFAULT 'selesai'
+      status          TEXT DEFAULT '${TransactionModel.statusSelesai}'
     )
     ''',
     '''
@@ -45,12 +48,18 @@ class DatabaseSchema {
     '''
     CREATE TABLE IF NOT EXISTS receipt_config (
       id            INTEGER PRIMARY KEY DEFAULT 1,
-      store_name    TEXT NOT NULL DEFAULT 'dodolanku',
-      store_address TEXT NOT NULL DEFAULT 'Jl. Raya dodolanku No. 1',
-      store_phone   TEXT DEFAULT '',
-      qris_data     TEXT DEFAULT '',
+      store_name    TEXT NOT NULL DEFAULT '${DatabaseConfig.defaultStoreName}',
+      store_address TEXT NOT NULL DEFAULT '${DatabaseConfig.defaultStoreAddress}',
+      store_phone   TEXT DEFAULT '${DatabaseConfig.defaultStorePhone}',
+      qris_data     TEXT DEFAULT '${DatabaseConfig.defaultQrisData}',
       header_msg    TEXT,
-      footer_msg    TEXT NOT NULL DEFAULT 'Terima Kasih'
+      footer_msg    TEXT NOT NULL DEFAULT '${DatabaseConfig.defaultFooterMsg}'
+    )
+    ''',
+    '''
+    CREATE TABLE IF NOT EXISTS app_settings (
+      key   TEXT PRIMARY KEY,
+      value TEXT NOT NULL
     )
     '''
   ];

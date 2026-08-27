@@ -21,7 +21,7 @@ void showPrintDialog(BuildContext context, CheckoutResult result) {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Drag handle
+            
             Container(
               width: 40, height: 4,
               decoration: BoxDecoration(
@@ -30,7 +30,7 @@ void showPrintDialog(BuildContext context, CheckoutResult result) {
               ),
             ),
             const SizedBox(height: 20),
-            // Icon
+            
             Container(
               width: 56, height: 56,
               decoration: BoxDecoration(

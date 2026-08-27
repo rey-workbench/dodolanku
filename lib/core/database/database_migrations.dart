@@ -1,9 +1,9 @@
 import 'package:sqflite/sqflite.dart';
 
 class DatabaseMigrations {
-  /// Daftar script migrasi. Mengecek keberadaan kolom terlebih dahulu
+  
   static Future<void> runMigrations(Database db) async {
-    // Ambil info kolom dari tabel products
+    
     final List<Map<String, dynamic>> tableInfo = await db.rawQuery("PRAGMA table_info(products)");
     
     final bool hasPrice = tableInfo.any((column) => column['name'] == 'price');

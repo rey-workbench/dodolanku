@@ -53,19 +53,22 @@ class _ScannerPageState extends ConsumerState<ScannerPage> {
       initialBarcode: barcode,
       title: 'Produk Baru Terdeteksi',
       subtitle: 'Barcode: $barcode',
-      onSave: ({
-        required String barcode,
-        required String name,
-        required double price,
-        required int stock,
-      }) async {
-        await ref.read(scannerProvider.notifier).addProduct(
-              barcode: barcode,
-              name: name,
-              price: price,
-              stock: stock,
-            );
-      },
+      onSave:
+          ({
+            required String barcode,
+            required String name,
+            required double price,
+            required int stock,
+          }) async {
+            await ref
+                .read(scannerProvider.notifier)
+                .addProduct(
+                  barcode: barcode,
+                  name: name,
+                  price: price,
+                  stock: stock,
+                );
+          },
     );
   }
 
@@ -81,29 +84,31 @@ class _ScannerPageState extends ConsumerState<ScannerPage> {
       initialBarcode: autoCode,
       title: 'Tambah Produk (Tanpa Barcode)',
       subtitle: 'Kode otomatis: $autoCode',
-      onSave: ({
-        required String barcode,
-        required String name,
-        required double price,
-        required int stock,
-      }) async {
-        await ref.read(scannerProvider.notifier).addProduct(
-              barcode: barcode,
-              name: name,
-              price: price,
-              stock: stock,
-            );
-        if (mounted) {
-          AppToast.show(
-            context,
-            message: 'Produk $name berhasil ditambahkan & masuk keranjang',
-          );
-        }
-      },
+      onSave:
+          ({
+            required String barcode,
+            required String name,
+            required double price,
+            required int stock,
+          }) async {
+            await ref
+                .read(scannerProvider.notifier)
+                .addProduct(
+                  barcode: barcode,
+                  name: name,
+                  price: price,
+                  stock: stock,
+                );
+            if (mounted) {
+              AppToast.show(
+                context,
+                message: 'Produk $name berhasil ditambahkan & masuk keranjang',
+              );
+            }
+          },
     );
   }
 
-  /// Muncul saat produk ditemukan tapi harga atau stok belum diset (== 0).
   void _showSetPriceStockDialog(
     String barcode,
     String productName,
@@ -419,7 +424,6 @@ class _ScannerPageState extends ConsumerState<ScannerPage> {
           : SafeArea(
               child: Column(
                 children: [
-                  // ── Camera / Scan Area (Always Active) ──
                   AppBarcodeScanner(
                     onScan: (rawValue) async {
                       final notifier = ref.read(scannerProvider.notifier);
@@ -440,7 +444,6 @@ class _ScannerPageState extends ConsumerState<ScannerPage> {
                     },
                   ),
 
-                  // ── Manual Input & Add Non-Barcode ─────
                   Padding(
                     padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
                     child: Row(
@@ -508,7 +511,6 @@ class _ScannerPageState extends ConsumerState<ScannerPage> {
 
                   const SizedBox(height: 12),
 
-                  // ── Cart Header ─────────────────────────
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: Row(
@@ -551,7 +553,6 @@ class _ScannerPageState extends ConsumerState<ScannerPage> {
                   ),
                   const SizedBox(height: 8),
 
-                  // ── Cart List ───────────────────────────
                   Expanded(
                     child: state.cart.isEmpty
                         ? Center(
@@ -622,7 +623,7 @@ class _ScannerPageState extends ConsumerState<ScannerPage> {
                                         ],
                                       ),
                                     ),
-                                    // Qty controls
+
                                     Row(
                                       children: [
                                         _QtyButton(
@@ -671,7 +672,6 @@ class _ScannerPageState extends ConsumerState<ScannerPage> {
                           ),
                   ),
 
-                  // ── Checkout Bar ─────────────────────────
                   if (state.cart.isNotEmpty)
                     Container(
                       padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
@@ -749,8 +749,6 @@ class _QtyButton extends StatelessWidget {
   }
 }
 
-// ── Payment Bottom Sheet ──────────────────────────────────────────────────────
-
 class _PaymentBottomSheet extends StatefulWidget {
   final double total;
   final Future<CheckoutResult> Function(String method, double paid) onConfirm;
@@ -816,7 +814,6 @@ class _PaymentBottomSheetState extends State<_PaymentBottomSheet> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Drag handle
             Center(
               child: Container(
                 width: 40,
@@ -838,7 +835,6 @@ class _PaymentBottomSheetState extends State<_PaymentBottomSheet> {
             ),
             const SizedBox(height: 16),
 
-            // Total card
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               decoration: BoxDecoration(
@@ -869,7 +865,6 @@ class _PaymentBottomSheetState extends State<_PaymentBottomSheet> {
             ),
             const SizedBox(height: 20),
 
-            // Metode bayar
             const Text(
               'Metode Bayar',
               style: TextStyle(
@@ -939,7 +934,6 @@ class _PaymentBottomSheetState extends State<_PaymentBottomSheet> {
             ),
             const SizedBox(height: 20),
 
-            // Input nominal (tunai only)
             if (_selectedMethod == 'tunai') ...[
               const Text(
                 'Nominal Diterima (Rp)',
@@ -981,7 +975,6 @@ class _PaymentBottomSheetState extends State<_PaymentBottomSheet> {
                   ),
                 ),
                 onChanged: (val) {
-                  // BUG-005 fix: strip titik separator ribuan sebelum parse
                   final clean = val.replaceAll('.', '').trim();
                   final paid = double.tryParse(clean) ?? 0;
                   setState(() => _change = paid - widget.total);
@@ -992,7 +985,9 @@ class _PaymentBottomSheetState extends State<_PaymentBottomSheet> {
                 spacing: 8,
                 runSpacing: 8,
                 children: _getQuickCashOptions().map((option) {
-                  final clean = _amountController.text.replaceAll('.', '').trim();
+                  final clean = _amountController.text
+                      .replaceAll('.', '')
+                      .trim();
                   final paid = double.tryParse(clean) ?? 0;
                   final isSelected = paid == option;
                   final isUangPas = option == widget.total;
@@ -1002,7 +997,9 @@ class _PaymentBottomSheetState extends State<_PaymentBottomSheet> {
                       final formatted = formatRupiah(option);
                       _amountController.value = TextEditingValue(
                         text: formatted,
-                        selection: TextSelection.collapsed(offset: formatted.length),
+                        selection: TextSelection.collapsed(
+                          offset: formatted.length,
+                        ),
                       );
                       setState(() {
                         _change = option - widget.total;
@@ -1010,7 +1007,10 @@ class _PaymentBottomSheetState extends State<_PaymentBottomSheet> {
                     },
                     borderRadius: BorderRadius.circular(8),
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
                       decoration: BoxDecoration(
                         color: isSelected ? primary : Colors.grey[50],
                         borderRadius: BorderRadius.circular(8),
@@ -1069,7 +1069,6 @@ class _PaymentBottomSheetState extends State<_PaymentBottomSheet> {
             ],
             const SizedBox(height: 16),
 
-            // Actions
             Row(
               children: [
                 Expanded(
@@ -1119,11 +1118,12 @@ class _PaymentBottomSheetState extends State<_PaymentBottomSheet> {
                             try {
                               await widget.onConfirm(_selectedMethod, paid);
                             } catch (e) {
-                              // BUG-006 fix: reset _isProcessing agar tombol tidak locked permanen
-                              final errMsg = e.toString().replaceAll('Exception: ', '');
-                              if (mounted) {
+                              final errMsg = e.toString().replaceAll(
+                                'Exception: ',
+                                '',
+                              );
+                              if (context.mounted) {
                                 AppToast.show(
-                                  // ignore: use_build_context_synchronously
                                   context,
                                   message: 'Terjadi kesalahan: $errMsg',
                                   isError: true,
@@ -1131,7 +1131,9 @@ class _PaymentBottomSheetState extends State<_PaymentBottomSheet> {
                                 );
                               }
                             } finally {
-                              if (mounted) setState(() => _isProcessing = false);
+                              if (mounted) {
+                                setState(() => _isProcessing = false);
+                              }
                             }
                           },
                     style: ElevatedButton.styleFrom(

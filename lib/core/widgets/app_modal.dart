@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:dodolanku/core/utils/currency_formatter.dart';
 
-/// Definisi satu field input untuk [showAppFormModal].
+
 class AppFormField {
   final TextEditingController controller;
   final String label;
@@ -24,8 +24,8 @@ class AppFormField {
   });
 }
 
-/// Menampilkan bottom sheet form generik dengan daftar [fields],
-/// tombol Batal, dan tombol konfirmasi ([confirmLabel], default 'Simpan').
+
+
 Future<void> showAppFormModal({
   required BuildContext context,
   required String title,
@@ -93,7 +93,7 @@ class _AppFormBottomSheetState extends State<_AppFormBottomSheet> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Drag handle
+            
             Center(
               child: Container(
                 width: 40,
@@ -105,7 +105,7 @@ class _AppFormBottomSheetState extends State<_AppFormBottomSheet> {
               ),
             ),
             const SizedBox(height: 20),
-            // Title
+            
             Text(
               widget.title,
               style: const TextStyle(
@@ -126,7 +126,7 @@ class _AppFormBottomSheetState extends State<_AppFormBottomSheet> {
               ),
             ],
             const SizedBox(height: 20),
-            // Form fields
+            
             Form(
               key: widget.formKey,
               child: Column(
@@ -193,7 +193,7 @@ class _AppFormBottomSheetState extends State<_AppFormBottomSheet> {
               ),
             ),
             const SizedBox(height: 4),
-            // Action buttons
+            
             Row(
               children: [
                 Expanded(
@@ -248,7 +248,7 @@ class _AppFormBottomSheetState extends State<_AppFormBottomSheet> {
   }
 }
 
-/// Menampilkan bottom sheet konfirmasi dengan desain premium.
+
 Future<void> showAppConfirmModal({
   required BuildContext context,
   required String title,
@@ -279,7 +279,7 @@ Future<void> showAppConfirmModal({
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Drag handle
+          
           Center(
             child: Container(
               width: 40,
@@ -362,7 +362,7 @@ Future<void> showAppConfirmModal({
   );
 }
 
-/// Menampilkan bottom sheet info/detail custom dengan desain premium.
+
 Future<void> showAppDetailModal({
   required BuildContext context,
   required String title,
@@ -392,7 +392,7 @@ Future<void> showAppDetailModal({
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Drag handle
+          
           Center(
             child: Container(
               width: 40,
@@ -445,8 +445,8 @@ Future<void> showAppDetailModal({
   );
 }
 
-/// Dialog/Modal khusus untuk Tambah/Edit Produk
-/// yang digunakan bersama oleh ScannerPage & StockOpnamePage agar tidak terduplikasi (DRY).
+
+
 Future<void> showProductFormModal({
   required BuildContext context,
   required String initialBarcode,

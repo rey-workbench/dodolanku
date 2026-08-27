@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// Baris header section dengan judul kiri dan tombol action kanan.
+
 class AppSectionHeader extends StatelessWidget {
   const AppSectionHeader({
     super.key,

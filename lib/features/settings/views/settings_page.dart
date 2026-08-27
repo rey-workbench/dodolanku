@@ -72,7 +72,7 @@ class SettingsPage extends ConsumerWidget {
       body: ListView(
         padding: EdgeInsets.fromLTRB(16, 16, 16, MediaQuery.of(context).padding.bottom + 90),
         children: [
-          // Profile Card
+          
           Card(
             child: Padding(
               padding: const EdgeInsets.all(16.0),
@@ -217,7 +217,7 @@ class SettingsPage extends ConsumerWidget {
                 subtitle: 'Cadangkan database SQLite lokal ke Google Drive',
                 onTap: () async {
                   final dbService = ref.read(databaseServiceProvider);
-                  await dbService.forceCheckpoint(); // Flush WAL ke .db sebelum backup
+                  await dbService.forceCheckpoint(); 
                   
                   if (!context.mounted) return;
                   AppToast.show(context, message: 'Menghubungkan ke Google Drive...');
@@ -248,24 +248,24 @@ class SettingsPage extends ConsumerWidget {
                       
                       final success = await GDriveService.restoreBackup(
                         onBeforeOverwrite: () async {
-                          // 1. TUTUP DB DULU, dilakukan SAAT file sudah terunduh
-                          // agar proses download yang lama tidak menyebabkan 'database closed'
+                          
+                          
                           dbService.dispose(); 
                         }
                       );
                       
-                      await dbService.initDb(); // 2. BUKA LAGI SETELAH DITIMPA
+                      await dbService.initDb(); 
                       
                       if (context.mounted) {
                         if (success) {
-                          // Hapus semua state sebelumnya dengan memaksa UI kembali ke halaman awal
+                          
                           Navigator.pushAndRemoveUntil(
                             context,
                             MaterialPageRoute(builder: (_) => const NavigationShell()),
                             (route) => false,
                           );
 
-                          // Muat ulang (Refresh) provider yang mungkin tidak ikut mati
+                          
                           ref.invalidate(scannerProvider);
                           ref.invalidate(profileProvider);
                           ref.invalidate(dashboardProvider);

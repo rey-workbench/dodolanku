@@ -6,7 +6,7 @@ REM ====================================================
 
 echo.
 echo ====================================================
-echo   YourCashier - Automated Release & Tag Utility
+echo   YourCashier - Automated Release and Tag Utility
 echo ====================================================
 echo.
 
@@ -114,7 +114,7 @@ if errorlevel 1 (
 
 echo.
 echo ====================================================
-echo [SUKSES] Release v%VERSION% berhasil dikirim ke GitHub!
+echo [SUKSES] Release v!VERSION! berhasil dikirim ke GitHub!
 echo GitHub Actions akan otomatis mem-build APK Release.
 echo ====================================================
 echo.

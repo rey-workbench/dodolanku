@@ -27,7 +27,8 @@ class DashboardPage extends ConsumerWidget {
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.surface,
       body: SafeArea(
-        child: dashboardAsync.when(
+        child: AppPageWidth(
+          child: dashboardAsync.when(
           loading: () => SingleChildScrollView(
             padding: EdgeInsets.fromLTRB(20, 20, 20, MediaQuery.of(context).padding.bottom + 90),
             child: Column(
@@ -436,6 +437,7 @@ class DashboardPage extends ConsumerWidget {
               ),
             );
           },
+          ),
         ),
       ),
     );

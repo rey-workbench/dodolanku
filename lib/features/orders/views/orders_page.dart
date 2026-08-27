@@ -239,7 +239,8 @@ class OrdersPage extends ConsumerWidget {
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.surface,
       appBar: AppBar(title: const Text('Riwayat Transaksi')),
-      body: transactionsAsync.when(
+      body: AppPageWidth(
+        child: transactionsAsync.when(
         loading: () => ListView.separated(
           padding: EdgeInsets.fromLTRB(
             16,
@@ -371,6 +372,7 @@ class OrdersPage extends ConsumerWidget {
             },
           );
         },
+        ),
       ),
     );
   }

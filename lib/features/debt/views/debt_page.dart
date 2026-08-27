@@ -108,8 +108,9 @@ class DebtPage extends ConsumerWidget {
           const SizedBox(width: 8),
         ],
       ),
-      body: Padding(
-        padding: EdgeInsets.fromLTRB(16, 16, 16, MediaQuery.of(context).padding.bottom + 90),
+      body: AppPageWidth(
+        child: Padding(
+          padding: EdgeInsets.fromLTRB(16, 16, 16, MediaQuery.of(context).padding.bottom + 90),
         child: Column(
           children: [
             AppSearchBar(hintText: 'Cari nama debitur...'),
@@ -255,6 +256,7 @@ class DebtPage extends ConsumerWidget {
               ),
             ),
           ],
+        ),
         ),
       ),
     );

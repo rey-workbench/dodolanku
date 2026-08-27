@@ -69,8 +69,9 @@ class SettingsPage extends ConsumerWidget {
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.surface,
       appBar: AppBar(title: const Text('Pengaturan')),
-      body: ListView(
-        padding: EdgeInsets.fromLTRB(16, 16, 16, MediaQuery.of(context).padding.bottom + 90),
+      body: AppPageWidth(
+        child: ListView(
+          padding: EdgeInsets.fromLTRB(16, 16, 16, MediaQuery.of(context).padding.bottom + 90),
         children: [
           
           Card(
@@ -309,6 +310,7 @@ class SettingsPage extends ConsumerWidget {
             ],
           ),
         ],
+        ),
       ),
     );
   }

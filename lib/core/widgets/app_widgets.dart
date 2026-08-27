@@ -17,3 +17,4 @@ export 'app_scanner_viewfinder.dart';
 export 'app_barcode_scanner.dart';
 export 'app_toast.dart';
 export 'app_shimmer.dart';
+export 'app_page_width.dart';

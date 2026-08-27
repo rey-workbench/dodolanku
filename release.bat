@@ -97,7 +97,7 @@ if errorlevel 1 (
 )
 
 echo.
-echo [4/4] Mengirim (Push) ke remote (!CURRENT_BRANCH! & tag v!VERSION!)...
+echo [4/4] Mengirim (Push) ke remote (!CURRENT_BRANCH! dan tag v!VERSION!)...
 git push origin "!CURRENT_BRANCH!"
 if errorlevel 1 (
     echo [ERROR] Gagal push branch !CURRENT_BRANCH! ke origin.

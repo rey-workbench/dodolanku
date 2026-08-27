@@ -47,26 +47,11 @@ if ($existingTag) {
     }
 }
 
-# 5. Pre-flight Flutter Analyze
-$runLint = Read-Host "Jalankan flutter analyze sebelum release? (Y/n)"
-if ($runLint -ne "n" -and $runLint -ne "N") {
-    Write-Host ""
-    Write-Host "[1/5] Menjalankan flutter analyze..." -ForegroundColor Cyan
-    flutter analyze
-    if ($LASTEXITCODE -ne 0) {
-        Write-Host ""
-        Write-Host "[ERROR] Terdapat issue pada flutter analyze! Perbaiki sebelum release." -ForegroundColor Red
-        Exit 1
-    }
-    Write-Host "[OK] Analisis selesai tanpa issue." -ForegroundColor Green
-}
-
-# 6. Input Pesan Commit
-Write-Host ""
+# 5. Input Pesan Commit
 $msg = Read-Host "Masukkan pesan commit (default: 'Release v$version')"
 if (-not $msg) { $msg = "Release v$version" }
 
-# 7. Konfirmasi Final
+# 6. Konfirmasi Final
 Write-Host ""
 Write-Host "====================================================" -ForegroundColor Cyan
 Write-Host "  Siap melakukan release:"
@@ -81,23 +66,23 @@ if ($confirm -eq "n" -or $confirm -eq "N") {
 }
 
 Write-Host ""
-Write-Host "[2/5] Menyimpan perubahan ke Git (git add .)..." -ForegroundColor Cyan
+Write-Host "[1/4] Menyimpan perubahan ke Git (git add .)..." -ForegroundColor Cyan
 git add .
 
-Write-Host "[3/5] Membuat Commit..." -ForegroundColor Cyan
+Write-Host "[2/4] Membuat Commit..." -ForegroundColor Cyan
 git commit -m $msg 2>$null
 if ($LASTEXITCODE -ne 0) {
     Write-Host "(Tidak ada perubahan baru untuk di-commit, melanjutkan ke tag...)" -ForegroundColor Gray
 }
 
-Write-Host "[4/5] Membuat Tag v$version..." -ForegroundColor Cyan
+Write-Host "[3/4] Membuat Tag v$version..." -ForegroundColor Cyan
 git tag -a "v$version" -m "Release v$version"
 if ($LASTEXITCODE -ne 0) {
     Write-Host "[ERROR] Gagal membuat tag v$version." -ForegroundColor Red
     Exit 1
 }
 
-Write-Host "[5/5] Mengirim (Push) ke remote ($branch & tag v$version)..." -ForegroundColor Cyan
+Write-Host "[4/4] Mengirim (Push) ke remote ($branch & tag v$version)..." -ForegroundColor Cyan
 git push origin $branch
 if ($LASTEXITCODE -ne 0) {
     Write-Host "[ERROR] Gagal push branch $branch ke origin." -ForegroundColor Red

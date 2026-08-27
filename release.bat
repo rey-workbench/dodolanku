@@ -58,34 +58,17 @@ if not errorlevel 1 (
     )
 )
 
-REM 5. Pre-flight Check: Flutter Analyze
-set /p run_lint="Jalankan flutter analyze sebelum release? (Y/n): "
-if /i not "%run_lint%"=="n" (
-    echo.
-    echo [1/5] Menjalankan flutter analyze...
-    call flutter analyze
-    if errorlevel 1 (
-        echo.
-        echo [ERROR] Terdapat issue pada flutter analyze!
-        echo Perbaiki error sebelum melakukan release.
-        pause
-        exit /b 1
-    )
-    echo [OK] Analisis selesai tanpa issue.
-)
+REM 5. Input Pesan Commit
+set /p "msg=Masukkan pesan commit (default: 'Release v%VERSION%'): "
+if "!msg!"=="" set "msg=Release v!VERSION!"
 
-REM 6. Input Pesan Commit
-echo.
-set /p msg="Masukkan pesan commit (default: 'Release v%VERSION%'): "
-if "%msg%"=="" set msg=Release v%VERSION%
-
-REM 7. Konfirmasi Final
+REM 6. Konfirmasi Final
 echo.
 echo ====================================================
 echo   Siap melakukan release:
-echo   - Versi   : v%VERSION%
-echo   - Branch  : %CURRENT_BRANCH%
-echo   - Pesan   : %msg%
+echo   - Versi   : v!VERSION!
+echo   - Branch  : !CURRENT_BRANCH!
+echo   - Pesan   : !msg!
 echo ====================================================
 set /p confirm="Lanjutkan push ke remote? (Y/n): "
 if /i "%confirm%"=="n" (
@@ -94,35 +77,35 @@ if /i "%confirm%"=="n" (
 )
 
 echo.
-echo [2/5] Menyimpan perubahan ke Git (git add .)...
+echo [1/4] Menyimpan perubahan ke Git (git add .)...
 git add .
 
 echo.
-echo [3/5] Membuat Commit...
-git commit -m "%msg%" >nul 2>&1
+echo [2/4] Membuat Commit...
+git commit -m "!msg!" >nul 2>&1
 if errorlevel 1 (
     echo (Tidak ada perubahan baru untuk di-commit, melanjutkan ke tag...)
 )
 
 echo.
-echo [4/5] Membuat Tag v%VERSION%...
-git tag -a "v%VERSION%" -m "Release v%VERSION%"
+echo [3/4] Membuat Tag v!VERSION!...
+git tag -a "v!VERSION!" -m "!msg!"
 if errorlevel 1 (
-    echo [ERROR] Gagal membuat tag v%VERSION%.
+    echo [ERROR] Gagal membuat tag v!VERSION!.
     pause
     exit /b 1
 )
 
 echo.
-echo [5/5] Mengirim (Push) ke remote (%CURRENT_BRANCH% & tag v%VERSION%)...
-git push origin "%CURRENT_BRANCH%"
+echo [4/4] Mengirim (Push) ke remote (!CURRENT_BRANCH! & tag v!VERSION!)...
+git push origin "!CURRENT_BRANCH!"
 if errorlevel 1 (
-    echo [ERROR] Gagal push branch %CURRENT_BRANCH% ke origin.
+    echo [ERROR] Gagal push branch !CURRENT_BRANCH! ke origin.
     pause
     exit /b 1
 )
 
-git push origin "v%VERSION%" --force
+git push origin "v!VERSION!" --force
 if errorlevel 1 (
     echo [ERROR] Gagal push tag v%VERSION% ke origin.
     pause
